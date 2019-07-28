@@ -1,0 +1,14 @@
+{
+  "domain": "beward",
+  "name": "Beward",
+  "documentation": "https://github.com/Limych/ha-beward",
+  "dependencies": [],
+  "config_flow": true,
+  "codeowners": [
+    "@Limych"
+  ],
+  "requirements": [
+    "integrationhelper"
+  ],
+  "homeassistant": "0.96.0"
+}
