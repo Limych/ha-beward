@@ -4,86 +4,51 @@ Component to integrate with Beward devices.
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
+import logging
 import os
 from datetime import timedelta
-import logging
-import voluptuous as vol
-from homeassistant import config_entries
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers import discovery
-from homeassistant.util import Throttle
 
+import homeassistant.helpers.config_validation as cv
+import voluptuous as vol
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
+    CONF_DEVICES
+from homeassistant.util import slugify
 from integrationhelper.const import CC_STARTUP_VERSION
 
-from .const import (
-    CONF_BINARY_SENSOR,
-    CONF_ENABLED,
-    CONF_NAME,
-    CONF_PASSWORD,
-    CONF_SENSOR,
-    CONF_SWITCH,
-    CONF_USERNAME,
-    DEFAULT_NAME,
-    DOMAIN_DATA,
-    DOMAIN,
-    ISSUE_URL,
-    PLATFORMS,
-    REQUIRED_FILES,
-    VERSION,
-)
+from .const import CONF_BINARY_SENSOR, CONF_ENABLED, CONF_NAME, CONF_SENSOR, \
+    DEFAULT_NAME, DOMAIN_DATA, DOMAIN, ISSUE_URL, PLATFORMS, \
+    REQUIRED_FILES, VERSION, CONF_EVENTS
 
 MIN_TIME_BETWEEN_UPDATES = timedelta(seconds=30)
 
 _LOGGER = logging.getLogger(__name__)
 
-BINARY_SENSOR_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    }
-)
+NOTIFICATION_ID = 'beward_notification'
+NOTIFICATION_TITLE = 'Beward Setup'
 
-SENSOR_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    }
-)
+DEVICE_SCHEMA = vol.Schema({
+    vol.Required(CONF_HOST): cv.string,
+    vol.Required(CONF_USERNAME): cv.string,
+    vol.Required(CONF_PASSWORD): cv.string,
+    vol.Optional(CONF_EVENTS, default=[]): vol.All(
+        cv.ensure_list, [cv.string]),
+    vol.Optional(CONF_NAME): cv.string,
+})
 
-SWITCH_SCHEMA = vol.Schema(
-    {
-        vol.Optional(CONF_ENABLED, default=True): cv.boolean,
-        vol.Optional(CONF_NAME, default=DEFAULT_NAME): cv.string,
-    }
-)
-
-CONFIG_SCHEMA = vol.Schema(
-    {
-        DOMAIN: vol.Schema(
-            {
-                vol.Optional(CONF_USERNAME): cv.string,
-                vol.Optional(CONF_PASSWORD): cv.string,
-                vol.Optional(CONF_BINARY_SENSOR): vol.All(
-                    cv.ensure_list, [BINARY_SENSOR_SCHEMA]
-                ),
-                vol.Optional(CONF_SENSOR): vol.All(cv.ensure_list, [SENSOR_SCHEMA]),
-                vol.Optional(CONF_SWITCH): vol.All(cv.ensure_list, [SWITCH_SCHEMA]),
-            }
-        )
-    },
-    extra=vol.ALLOW_EXTRA,
-)
+CONFIG_SCHEMA = vol.Schema({
+    DOMAIN: vol.Schema({
+        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [DEVICE_SCHEMA])
+    }),
+}, extra=vol.ALLOW_EXTRA)
 
 
-async def async_setup(hass, config):
-    """Set up this component using YAML."""
-    if config.get(DOMAIN) is None:
-        # We get her if the integration is set up using config flow
-        return True
+def setup(hass, config):
+    """Set up the Beward component."""
 
     # Print startup message
     _LOGGER.info(
-        CC_STARTUP_VERSION.format(name=DOMAIN, version=VERSION, issue_link=ISSUE_URL)
+        CC_STARTUP_VERSION.format(name=DOMAIN, version=VERSION,
+                                  issue_link=ISSUE_URL)
     )
 
     # Check that all required files are present
@@ -91,117 +56,60 @@ async def async_setup(hass, config):
     if not file_check:
         return False
 
-    # Create DATA dict
-    hass.data[DOMAIN_DATA] = {}
+    from beward import Beward
 
-    # Get "global" configuration.
-    username = config[DOMAIN].get(CONF_USERNAME)
-    password = config[DOMAIN].get(CONF_PASSWORD)
+    devices = []
 
-    # Configure the client.
-    client = Client(username, password)
-    hass.data[DOMAIN_DATA]["client"] = BlueprintData(hass, client)
+    for index, device_config in enumerate(config[DOMAIN][CONF_DEVICES]):
+        device_ip = device_config.get(CONF_HOST)
+        username = device_config.get(CONF_USERNAME)
+        password = device_config.get(CONF_PASSWORD)
+        events = device_config.get(CONF_EVENTS)
 
-    # Load platforms
-    for platform in PLATFORMS:
-        # Get platform specific configuration
-        platform_config = config[DOMAIN].get(platform, {})
+        device = Beward.factory(device_ip, username, password)
 
-        # If platform is not enabled, skip.
-        if not platform_config:
-            continue
+        if device is None:
+            _LOGGER.error("Authorization rejected by Beward device for %s@%s",
+                          username, device_ip)
+            return False
+        if not device.ready():
+            _LOGGER.error("Could not connect to Beward device as %s@%s",
+                          username, device_ip)
+            return False
 
-        for entry in platform_config:
-            entry_config = entry
+        name = (device_config.get(CONF_NAME)
+                or 'Beward %s' % device.system_info.get('DeviceID',
+                                                        '#%d' % (index + 1)))
 
-            # If entry is not enabled, skip.
-            if not entry_config[CONF_ENABLED]:
-                continue
+        beward = ConfiguredBeward(device, name, events)
+        devices.append(beward)
+        _LOGGER.info('Connected to Beward device "%s" as %s@%s',
+                     beward.name, username, device_ip)
 
-            hass.async_create_task(
-                discovery.async_load_platform(
-                    hass, platform, DOMAIN, entry_config, config
-                )
-            )
-    hass.async_create_task(
-        hass.config_entries.flow.async_init(
-            DOMAIN, context={"source": config_entries.SOURCE_IMPORT}, data={}
-        )
-    )
-    return True
+        # Subscribe to doorbell or motion events
+        if events:
+            try:
+                beward.register_events(hass)
+            except HTTPError:
+                hass.components.persistent_notification.create(
+                    'Beward device configuration failed. Please verify that '
+                    'API Operator permission is enabled for the device '
+                    'user. A restart will be required once permissions have '
+                    'been verified.',
+                    title='Beward device Configuration Failure',
+                    notification_id='beward_schedule_error')
 
+                return False
 
-async def async_setup_entry(hass, config_entry):
-    """Set up this integration using UI."""
-    conf = hass.data.get(DOMAIN_DATA)
-    if config_entry.source == config_entries.SOURCE_IMPORT:
-        if conf is None:
-            hass.async_create_task(
-                hass.config_entries.async_remove(config_entry.entry_id)
-            )
-        return False
-
-    # Print startup message
-    _LOGGER.info(
-        CC_STARTUP_VERSION.format(name=DOMAIN, version=VERSION, issue_link=ISSUE_URL)
-    )
-
-    # Check that all required files are present
-    file_check = await check_files(hass)
-    if not file_check:
-        return False
-
-    # Create DATA dict
-    hass.data[DOMAIN_DATA] = {}
-
-    # Get "global" configuration.
-    username = config_entry.data.get(CONF_USERNAME)
-    password = config_entry.data.get(CONF_PASSWORD)
-
-    # Configure the client.
-    client = Client(username, password)
-    hass.data[DOMAIN_DATA]["client"] = BlueprintData(hass, client)
-
-    # Add binary_sensor
-    hass.async_add_job(
-        hass.config_entries.async_forward_entry_setup(config_entry, "binary_sensor")
-    )
-
-    # Add sensor
-    hass.async_add_job(
-        hass.config_entries.async_forward_entry_setup(config_entry, "sensor")
-    )
-
-    # Add switch
-    hass.async_add_job(
-        hass.config_entries.async_forward_entry_setup(config_entry, "switch")
-    )
+    hass.data[DOMAIN] = devices
 
     return True
-
-
-class BlueprintData:
-    """This class handle communication and stores the data."""
-
-    def __init__(self, hass, client):
-        """Initialize the class."""
-        self.hass = hass
-        self.client = client
-
-    @Throttle(MIN_TIME_BETWEEN_UPDATES)
-    async def update_data(self):
-        """Update data."""
-        # This is where the main logic to update platform data goes.
-        try:
-            data = self.client.get_data()
-            self.hass.data[DOMAIN_DATA]["data"] = data
-        except Exception as error:  # pylint: disable=broad-except
-            _LOGGER.error("Could not update data - %s", error)
 
 
 async def check_files(hass):
     """Return bool that indicates if all files are present."""
-    # Verify that the user downloaded all files.
+
+    # Verify that the user downloaded all required files.
     base = f"{hass.config.path()}/custom_components/{DOMAIN}/"
     missing = []
     for file in REQUIRED_FILES:
@@ -211,33 +119,50 @@ async def check_files(hass):
 
     if missing:
         _LOGGER.critical("The following files are missing: %s", str(missing))
-        returnvalue = False
-    else:
-        returnvalue = True
+        return False
 
-    return returnvalue
+    return True
 
 
-async def async_remove_entry(hass, config_entry):
-    """Handle removal of an entry."""
-    try:
-        await hass.config_entries.async_forward_entry_unload(
-            config_entry, "binary_sensor"
-        )
-        _LOGGER.info(
-            "Successfully removed binary_sensor from the Beward integration"
-        )
-    except ValueError:
-        pass
+class ConfiguredBeward:
+    """Attach additional information to pass along with configured device."""
 
-    try:
-        await hass.config_entries.async_forward_entry_unload(config_entry, "sensor")
-        _LOGGER.info("Successfully removed sensor from the Beward integration")
-    except ValueError:
-        pass
+    def __init__(self, device, name, events):
+        """Initialize configured device."""
 
-    try:
-        await hass.config_entries.async_forward_entry_unload(config_entry, "switch")
-        _LOGGER.info("Successfully removed switch from the Beward integration")
-    except ValueError:
-        pass
+        self._name = name
+        self._device = device
+        self._events = events
+
+    @property
+    def name(self):
+        """Get custom device name."""
+        return self._name
+
+    @property
+    def device(self):
+        """Get the configured device."""
+        return self._device
+
+    @property
+    def slug(self):
+        """Get device slug."""
+        return slugify(self._name)
+
+    def register_events(self, hass):
+        """Register events on device."""
+
+        # Get the URL of this server
+        hass_url = hass.config.api.base_url
+
+        # Override url if another is specified in the configuration
+        if self.custom_url is not None:
+            hass_url = self.custom_url
+
+        for event in self._events:
+            event = self._get_event_name(event)
+
+            self._register_event(hass_url, event)
+
+            _LOGGER.info('Successfully registered URL for %s on %s',
+                         event, self.name)
