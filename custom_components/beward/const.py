@@ -2,9 +2,8 @@
 
 # Base component constants
 DOMAIN = "beward"
-DOMAIN_DATA = f"{DOMAIN}_data"
+DATA_BEWARD = DOMAIN
 VERSION = "0.0.1"
-PLATFORMS = ["camera", "binary_sensor", "sensor"]
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",
@@ -16,18 +15,7 @@ REQUIRED_FILES = [
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
-# Icons
-ICON = "mdi:format-quote-close"
-
-# Device classes
-BINARY_SENSOR_DEVICE_CLASS = "connectivity"
-
 # Configuration
-CONF_BINARY_SENSOR = "binary_sensor"
-CONF_SENSOR = "sensor"
-CONF_ENABLED = "enabled"
-CONF_NAME = "name"
 CONF_EVENTS = 'events'
-
-# Defaults
-DEFAULT_NAME = DOMAIN
+#
+DEFAULT_ARGUMENTS = '-pred 1'

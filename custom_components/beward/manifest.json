@@ -8,7 +8,13 @@
     "@Limych"
   ],
   "requirements": [
-    "integrationhelper"
+    "beward>=0.3.0",
+    "async_timeout",
+    "aiohttp",
+    "voluptuous",
+    "homeassistant",
+    "integrationhelper",
+    "ha-ffmpeg"
   ],
   "homeassistant": "0.96.0"
 }

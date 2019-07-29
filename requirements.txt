@@ -1,2 +1,7 @@
+async_timeout
+aiohttp
+voluptuous
+homeassistant
 integrationhelper
 beward
+ha-ffmpeg
