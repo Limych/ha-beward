@@ -1,5 +1,5 @@
 """
-Component to integrate with Beward devices.
+Component to integrate with Beward security devices.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
@@ -7,25 +7,60 @@ https://github.com/Limych/ha-beward
 
 import logging
 import os
+from datetime import datetime
 
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
     CONF_DEVICES, CONF_NAME
-from integrationhelper.const import CC_STARTUP_VERSION
+from homeassistant.helpers.storage import STORAGE_DIR
+from homeassistant.util import slugify
 
-from .const import DOMAIN, DATA_BEWARD, REQUIRED_FILES, VERSION, CONF_EVENTS, \
-    ISSUE_URL
+from beward import BewardGeneric
+from beward.const import ALARM_MOTION, ALARM_SENSOR
 
 _LOGGER = logging.getLogger(__name__)
+
+# Base component constants
+DOMAIN = "beward"
+VERSION = "0.2.1"
+REQUIRED_FILES = [
+    ".translations/en.json",
+    "binary_sensor.py",
+    "camera.py",
+    "config_flow.py",
+    "manifest.json",
+    "sensor.py",
+]
+ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
+ATTRIBUTION = "Data provided by Beward device."
+
+DATA_BEWARD = DOMAIN
+STORAGE_KEY = DOMAIN
+
+CONF_EVENTS = 'events'
+CONF_STREAM = 'stream'
+CONF_FFMPEG_ARGUMENTS = 'ffmpeg_arguments'
+
+EVENT_MOTION = 'motion'
+EVENT_DING = 'ding'
+
+ALARMS_TO_EVENTS = {
+    ALARM_MOTION: EVENT_MOTION,
+    ALARM_SENSOR: EVENT_DING,
+}
+
+ATTR_DEVICE_ID = 'device_id'
+
+CAT_DOORBELL = 'doorbell'
+CAT_CAMERA = 'camera'
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_HOST): cv.string,
     vol.Required(CONF_USERNAME): cv.string,
     vol.Required(CONF_PASSWORD): cv.string,
-    # vol.Optional(CONF_EVENTS, default=[]): vol.All(
-    #     cv.ensure_list, [cv.string]),
     vol.Optional(CONF_NAME): cv.string,
+    vol.Optional(CONF_STREAM, default=0): int,
 })
 
 CONFIG_SCHEMA = vol.Schema({
@@ -37,15 +72,13 @@ CONFIG_SCHEMA = vol.Schema({
 
 def setup(hass, config):
     """Set up the Beward component."""
-
     # Print startup message
-    _LOGGER.info(
-        CC_STARTUP_VERSION.format(name=DOMAIN, version=VERSION,
-                                  issue_link=ISSUE_URL)
-    )
+    _LOGGER.debug('Version %s', VERSION)
+    _LOGGER.info('If you have any issues with this you need to open an issue '
+                 'here: %s' % ISSUE_URL)
 
     # Check that all required files are present
-    file_check = check_files(hass)
+    file_check = _check_files(hass)
     if not file_check:
         return False
 
@@ -57,9 +90,9 @@ def setup(hass, config):
         device_ip = device_config.get(CONF_HOST)
         username = device_config.get(CONF_USERNAME)
         password = device_config.get(CONF_PASSWORD)
-        # events = device_config.get(CONF_EVENTS)
+        stream = device_config.get(CONF_STREAM)
 
-        beward = Beward.factory(device_ip, username, password)
+        beward = Beward.factory(device_ip, username, password, stream=stream)
 
         if beward is None or not beward.ready:
             if beward is None:
@@ -78,22 +111,23 @@ def setup(hass, config):
                 notification_id='beward_connection_error')
             return False
 
-        beward.name = (device_config.get(CONF_NAME)
-                       or 'Beward %s' % beward.system_info
-                       .get('DeviceID', '#%d' % (index + 1)))
+        controller = BewardController(
+            hass, beward,
+            device_config.get(CONF_NAME)
+            or 'Beward %s' % beward.system_info.get('DeviceID',
+                                                    '#%d' % (index + 1)))
 
-        devices.append(beward)
+        devices.append(controller)
         _LOGGER.info('Connected to Beward device "%s" as %s@%s',
-                     beward.name, username, device_ip)
+                     controller.name, username, device_ip)
 
-    hass.data[DOMAIN] = devices
+    hass.data[DATA_BEWARD] = devices
 
     return True
 
 
-async def check_files(hass):
+def _check_files(hass):
     """Return bool that indicates if all files are present."""
-
     # Verify that the user downloaded all required files.
     base = f"{hass.config.path()}/custom_components/{DOMAIN}/"
     missing = []
@@ -107,3 +141,50 @@ async def check_files(hass):
         return False
 
     return True
+
+
+def hasmethod(o, name: str) -> bool:
+    """Return whether the object has a callable method with the given name."""
+    return hasattr(o, name) and callable(getattr(o, name))
+
+
+class BewardController:
+    """Beward device controller."""
+
+    def __init__(self, hass, device: BewardGeneric, name: str):
+        """Initialize configured device."""
+        self.hass = hass
+        self._device = device
+        self._name = name
+
+        self.event_timestamp = {}
+        self.event_state = {}
+        self.sensors = []
+
+    @property
+    def unique_id(self):
+        """Return a device unique ID."""
+        return self._device.system_info.get('DeviceID', self._device.host)
+
+    @property
+    def name(self):
+        """Get custom device name."""
+        return self._name
+
+    @property
+    def device(self):
+        """Get the configured device."""
+        return self._device
+
+    def history_image_path(self, event: str):
+        """Return the path to saved image."""
+        file_name = '.'.join((STORAGE_KEY, slugify(self.name), event, 'jpg'))
+        return self.hass.config.path(STORAGE_DIR, file_name)
+
+    def set_event_state(self, timestamp: datetime, event: str, state: bool):
+        self.event_timestamp[event] = timestamp
+        self.event_state[event] = state
+
+        for sensor in self.sensors:
+            if hasattr(sensor, 'update'):
+                sensor.update()

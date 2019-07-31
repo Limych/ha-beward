@@ -8,13 +8,18 @@
     "@Limych"
   ],
   "requirements": [
-    "beward>=0.3.0",
-    "async_timeout",
-    "aiohttp",
-    "voluptuous",
-    "homeassistant",
-    "integrationhelper",
-    "ha-ffmpeg"
+    "beward~=0.10"
   ],
-  "homeassistant": "0.96.0"
+  "homeassistant": "0.96.0",
+  "ssdp": {
+    "st": [
+      "upnp:rootdevice"
+    ],
+    "manufacturer": [
+      "Beward R&D Co., Ltd"
+    ],
+    "device_type": [
+      "urn:schemas-upnp-org:device:Basic:1"
+    ]
+  }
 }

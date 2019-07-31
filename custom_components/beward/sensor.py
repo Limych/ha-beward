@@ -1,62 +1,77 @@
 """Sensor platform for Beward devices."""
+
+import logging
+from os import path
+
+import homeassistant.helpers.config_validation as cv
+import homeassistant.util.dt as dt_util
+import voluptuous as vol
+from homeassistant.components.sensor import PLATFORM_SCHEMA
+from homeassistant.const import CONF_MONITORED_CONDITIONS, ATTR_ATTRIBUTION, \
+    DEVICE_CLASS_TIMESTAMP
 from homeassistant.helpers.entity import Entity
-from .const import ATTRIBUTION, DEFAULT_NAME, DOMAIN_DATA, ICON, DOMAIN
+
+from beward import BewardCamera, BewardDoorbell
+from custom_components.beward import BewardController
+from . import CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, ATTRIBUTION, \
+    ATTR_DEVICE_ID, EVENT_MOTION, EVENT_DING
+
+_LOGGER = logging.getLogger(__name__)
+
+# Sensor types: Name, category, class, units, icon
+SENSOR_TYPES = {
+    'last_activity': [
+        'Last Activity', [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_TIMESTAMP,
+        None, 'history'],
+    'last_motion': [
+        'Last Motion', [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_TIMESTAMP,
+        None, 'history'],
+    'last_ding': [
+        'Last Ding', [CAT_DOORBELL], DEVICE_CLASS_TIMESTAMP, None, 'history'],
+}
+
+PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
+    vol.Required(CONF_MONITORED_CONDITIONS, default=list(SENSOR_TYPES)):
+        vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
+})
 
 
-async def async_setup_platform(
-    hass, config, async_add_entities, discovery_info=None
-):  # pylint: disable=unused-argument
-    """Setup sensor platform."""
-    async_add_entities([BlueprintSensor(hass, discovery_info)], True)
+def setup_platform(hass, config, add_entities, discovery_info=None):
+    """Set up a sensor for a Beward device."""
+    sensors = []
+    for controller in hass.data[DATA_BEWARD]:  # type: BewardController
+        category = None
+        if isinstance(controller.device, BewardCamera):
+            category = CAT_CAMERA
+        if isinstance(controller.device, BewardDoorbell):
+            category = CAT_DOORBELL
+
+        for sensor_type in list(SENSOR_TYPES):
+            if category in SENSOR_TYPES.get(sensor_type)[1]:
+                sensors.append(BewardSensor(hass, controller, sensor_type))
+
+    add_entities(sensors, True)
 
 
-async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensor platform."""
-    async_add_devices([BlueprintSensor(hass, {})], True)
+class BewardSensor(Entity):
+    """A sensor implementation for Beward device."""
 
+    def __init__(self, hass, controller: BewardController, sensor_type: str):
+        """Initialize a sensor for Beward device."""
+        super().__init__()
 
-class BlueprintSensor(Entity):
-    """beward Sensor class."""
-
-    def __init__(self, hass, config):
-        self.hass = hass
-        self.attr = {}
+        self._sensor_type = sensor_type
+        self._controller = controller
+        self._name = "{0} {1}".format(
+            self._controller.name, SENSOR_TYPES.get(self._sensor_type)[0])
+        self._device_class = SENSOR_TYPES.get(self._sensor_type)[2]
+        self._units = SENSOR_TYPES.get(self._sensor_type)[3]
+        self._icon = 'mdi:{}'.format(SENSOR_TYPES.get(self._sensor_type)[4])
         self._state = None
-        self._name = config.get("name", DEFAULT_NAME)
+        self._unique_id = '{}-{}'.format(self._controller.unique_id,
+                                         self._sensor_type)
 
-    async def async_update(self):
-        """Update the sensor."""
-        # Send update "signal" to the component
-        await self.hass.data[DOMAIN_DATA]["client"].update_data()
-
-        # Get new data (if any)
-        updated = self.hass.data[DOMAIN_DATA]["data"].get("data", {})
-
-        # Check the data and update the value.
-        if updated.get("static") is None:
-            self._state = self._state
-        else:
-            self._state = updated.get("static")
-
-        # Set/update attributes
-        self.attr["attribution"] = ATTRIBUTION
-        self.attr["time"] = str(updated.get("time"))
-        self.attr["none"] = updated.get("none")
-
-    @property
-    def unique_id(self):
-        """Return a unique ID to use for this sensor."""
-        return (
-            "0717a0cd-745c-48fd"
-        )  # Don't had code this, use something from the device/service.
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "name": self.name,
-            "manufacturer": "Blueprint",
-        }
+        self._controller.sensors.append(self)
 
     @property
     def name(self):
@@ -69,11 +84,67 @@ class BlueprintSensor(Entity):
         return self._state
 
     @property
-    def icon(self):
-        """Return the icon of the sensor."""
-        return ICON
+    def unique_id(self):
+        """Return a unique ID."""
+        return self._unique_id
+
+    @property
+    def device_class(self):
+        """Return the class of the sensor."""
+        return self._device_class
 
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-        return self.attr
+        attrs = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+            ATTR_DEVICE_ID: self._controller.unique_id,
+        }
+        return attrs
+
+    @property
+    def icon(self):
+        """Icon to use in the frontend, if any."""
+        return self._icon
+
+    @property
+    def unit_of_measurement(self):
+        """Return the units of measurement."""
+        return self._units
+
+    @property
+    def should_poll(self):
+        """Return the polling state."""
+        return False
+
+    def _get_file_mtime(self, event):
+        image_path = self._controller.history_image_path(event)
+        try:
+            return dt_util.utc_from_timestamp(path.getmtime(image_path))
+        except OSError:
+            pass
+        return None
+
+    def update(self):
+        """Get the latest data and updates the state."""
+        _LOGGER.debug("Updating data for %s sensor", self._name)
+
+        event_ts = None
+        if self._sensor_type == 'last_motion':
+            event_ts = self._controller.event_timestamp.get(
+                EVENT_MOTION, self._get_file_mtime(EVENT_MOTION))
+
+        elif self._sensor_type == 'last_ding':
+            event_ts = self._controller.event_timestamp.get(
+                EVENT_DING, self._get_file_mtime(EVENT_DING))
+
+        elif self._sensor_type == 'last_activity':
+            event_ts = max((
+                self._controller.event_timestamp.get(
+                    EVENT_MOTION, self._get_file_mtime(EVENT_MOTION)),
+                self._controller.event_timestamp.get(
+                    EVENT_DING, self._get_file_mtime(EVENT_DING)),
+            ), default=None)
+
+        self._state = dt_util.as_local(event_ts.replace(
+            microsecond=0)).isoformat() if event_ts else None

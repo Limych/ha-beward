@@ -1,85 +1,98 @@
 """Binary sensor platform for Beward devices."""
-from homeassistant.components.binary_sensor import BinarySensorDevice
-from .const import (
-    ATTRIBUTION,
-    BINARY_SENSOR_DEVICE_CLASS,
-    DEFAULT_NAME,
-    DOMAIN_DATA,
-    DOMAIN,
-)
+import logging
+
+from homeassistant.components.binary_sensor import BinarySensorDevice, \
+    DEVICE_CLASS_OCCUPANCY, DEVICE_CLASS_MOTION
+from homeassistant.const import ATTR_ATTRIBUTION
+
+from beward import BewardCamera, BewardDoorbell
+from custom_components.beward import BewardController
+from . import ATTRIBUTION, DATA_BEWARD, ATTR_DEVICE_ID, EVENT_MOTION, \
+    EVENT_DING, CAT_DOORBELL, CAT_CAMERA
+
+_LOGGER = logging.getLogger(__name__)
+
+# Sensor types: Name, category, class
+SENSOR_TYPES = {
+    EVENT_DING: [
+        'Ding', [CAT_DOORBELL], DEVICE_CLASS_OCCUPANCY],
+    EVENT_MOTION: [
+        'Motion', [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION],
+}
 
 
-async def async_setup_platform(
-    hass, config, async_add_entities, discovery_info=None
-):  # pylint: disable=unused-argument
-    """Setup binary_sensor platform."""
-    async_add_entities([BlueprintBinarySensor(hass, discovery_info)], True)
+def setup_platform(hass, config, add_entities, discovery_info=None):
+    """Set up a sensor for a Beward device."""
+    sensors = []
+    for controller in hass.data[DATA_BEWARD]:  # type: BewardController
+        category = None
+        if isinstance(controller.device, BewardCamera):
+            category = CAT_CAMERA
+        if isinstance(controller.device, BewardDoorbell):
+            category = CAT_DOORBELL
+
+        for sensor_type in list(SENSOR_TYPES):
+            if category in SENSOR_TYPES.get(sensor_type)[1]:
+                sensors.append(
+                    BewardBinarySensor(hass, controller, sensor_type))
+
+    add_entities(sensors, True)
 
 
-async def async_setup_entry(hass, config_entry, async_add_devices):
-    """Setup sensor platform."""
-    async_add_devices([BlueprintBinarySensor(hass, {})], True)
+class BewardBinarySensor(BinarySensorDevice):
+    """A binary sensor implementation for Beward device."""
 
+    def __init__(self, hass, controller: BewardController, sensor_type: str):
+        """Initialize a sensor for Beward device."""
+        super().__init__()
 
-class BlueprintBinarySensor(BinarySensorDevice):
-    """beward binary_sensor class."""
+        self._sensor_type = sensor_type
+        self._controller = controller
+        self._name = "{0} {1}".format(
+            self._controller.name, SENSOR_TYPES.get(self._sensor_type)[0])
+        self._device_class = SENSOR_TYPES.get(self._sensor_type)[2]
+        self._state = None
+        self._unique_id = '{}-{}'.format(self._controller.unique_id,
+                                         self._sensor_type)
 
-    def __init__(self, hass, config):
-        self.hass = hass
-        self.attr = {}
-        self._status = False
-        self._name = config.get("name", DEFAULT_NAME)
-
-    async def async_update(self):
-        """Update the binary_sensor."""
-        # Send update "signal" to the component
-        await self.hass.data[DOMAIN_DATA]["client"].update_data()
-
-        # Get new data (if any)
-        updated = self.hass.data[DOMAIN_DATA]["data"].get("data", {})
-
-        # Check the data and update the value.
-        if updated.get("bool_on") is None:
-            self._status = self._status
-        else:
-            self._status = updated.get("bool_on")
-
-        # Set/update attributes
-        self.attr["attribution"] = ATTRIBUTION
-        self.attr["time"] = str(updated.get("time"))
-        self.attr["static"] = updated.get("static")
-
-    @property
-    def unique_id(self):
-        """Return a unique ID to use for this binary_sensor."""
-        return (
-            "0919a0cd-745c-48fd"
-        )  # Don't had code this, use something from the device/service.
-
-    @property
-    def device_info(self):
-        return {
-            "identifiers": {(DOMAIN, self.unique_id)},
-            "name": self.name,
-            "manufacturer": "Blueprint",
-        }
+        self._controller.sensors.append(self)
 
     @property
     def name(self):
-        """Return the name of the binary_sensor."""
+        """Return the name of the sensor."""
         return self._name
 
     @property
-    def device_class(self):
-        """Return the class of this binary_sensor."""
-        return BINARY_SENSOR_DEVICE_CLASS
+    def is_on(self):
+        """Return True if the binary sensor is on."""
+        return self._state
 
     @property
-    def is_on(self):
-        """Return true if the binary_sensor is on."""
-        return self._status
+    def device_class(self):
+        """Return the class of the binary sensor."""
+        return self._device_class
+
+    @property
+    def unique_id(self):
+        """Return a unique ID."""
+        return self._unique_id
+
+    @property
+    def should_poll(self):
+        """Return the polling state."""
+        return False
 
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-        return self.attr
+        attrs = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+            ATTR_DEVICE_ID: self._controller.unique_id,
+        }
+        return attrs
+
+    def update(self):
+        """Get the latest data and updates the state."""
+        _LOGGER.debug("Updating data for %s binary sensor", self._name)
+        self._state = self._controller.event_state.get(
+            self._sensor_type, False)
