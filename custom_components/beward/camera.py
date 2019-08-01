@@ -145,6 +145,7 @@ class BewardCamera(Camera):
         image_path = self._controller.history_image_path(event)
         tmp_filename = ""
         tmp_path = os.path.split(image_path)[0]
+        _LOGGER.debug('Save camera photo to %s' % image_path)
         try:
             # Modern versions of Python tempfile create
             # this file with mode 0o600
@@ -171,10 +172,9 @@ class BewardCamera(Camera):
     def alarms_handler(self, device, timestamp: datetime, alarm: str,
                        state: bool):
         """Handle device's alarm events."""
+        _LOGGER.debug('Handle alarm "%s". State: %s' % (alarm, state))
         if alarm in (ALARM_MOTION, ALARM_SENSOR):
             event = ALARMS_TO_EVENTS[alarm]
-            _LOGGER.debug('Handling event "%s". State: %d' % (event, state))
-            self._controller.set_event_state(timestamp, event, state)
-
             if state:
                 self._cache_image(event, self.camera_image())
+            self._controller.set_event_state(timestamp, event, state)

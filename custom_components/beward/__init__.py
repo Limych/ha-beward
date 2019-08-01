@@ -23,7 +23,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",

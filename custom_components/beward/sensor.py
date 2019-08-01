@@ -125,26 +125,27 @@ class BewardSensor(Entity):
             pass
         return None
 
+    def _get_event_timestamp(self, event):
+        event_ts = self._controller.event_timestamp.get(
+            event, self._get_file_mtime(event))
+        return event_ts
+
     def update(self):
         """Get the latest data and updates the state."""
         _LOGGER.debug("Updating data for %s sensor", self._name)
 
         event_ts = None
         if self._sensor_type == 'last_motion':
-            event_ts = self._controller.event_timestamp.get(
-                EVENT_MOTION, self._get_file_mtime(EVENT_MOTION))
+            event_ts = self._get_event_timestamp(EVENT_MOTION)
 
         elif self._sensor_type == 'last_ding':
-            event_ts = self._controller.event_timestamp.get(
-                EVENT_DING, self._get_file_mtime(EVENT_DING))
+            event_ts = self._get_event_timestamp(EVENT_DING)
 
         elif self._sensor_type == 'last_activity':
-            event_ts = max((
-                self._controller.event_timestamp.get(
-                    EVENT_MOTION, self._get_file_mtime(EVENT_MOTION)),
-                self._controller.event_timestamp.get(
-                    EVENT_DING, self._get_file_mtime(EVENT_DING)),
-            ), default=None)
+            event_ts = self._get_event_timestamp(EVENT_MOTION)
+            ding_ts = self._get_event_timestamp(EVENT_DING)
+            if ding_ts is not None and ding_ts > event_ts:
+                event_ts = ding_ts
 
         self._state = dt_util.as_local(event_ts.replace(
             microsecond=0)).isoformat() if event_ts else None

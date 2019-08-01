@@ -160,8 +160,6 @@ sensor:
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
 
-***
-
 [beward]: https://www.beward.ru/
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Limych/ha-beward.svg?style=popout
 [commits]: https://github.com/Limych/ha-beward/commits/master
@@ -169,7 +167,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 [hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=popout
 [exampleimg]: beward.png
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
-[forum]: https://community.home-assistant.io/
+[forum]: https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388
 [license-shield]: https://img.shields.io/github/license/Limych/ha-beward.svg?style=popout
 [maintenance-shield]: https://img.shields.io/badge/maintainer-Andrey%20Khrolenok%20%40Limych-blue.svg?style=popout
 [releases-shield]: https://img.shields.io/github/release/Limych/ha-beward.svg?style=popout
