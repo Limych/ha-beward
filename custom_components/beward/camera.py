@@ -7,8 +7,6 @@ https://github.com/Limych/ha-beward
 import asyncio
 import datetime
 import logging
-import os
-import tempfile
 
 import aiohttp
 import async_timeout
@@ -23,9 +21,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession, \
     async_aiohttp_proxy_stream
 from homeassistant.util.async_ import run_coroutine_threadsafe
 
-from beward.const import ALARM_MOTION, ALARM_SENSOR
 from . import BewardController, DATA_BEWARD, EVENT_MOTION, EVENT_DING, \
-    ALARMS_TO_EVENTS, CONF_FFMPEG_ARGUMENTS
+    CONF_FFMPEG_ARGUMENTS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,10 +70,6 @@ class BewardCamera(Camera):
         self._ffmpeg_input = "-rtsp_transport tcp -i " + self._stream_url
         self._ffmpeg_arguments = config.get(CONF_FFMPEG_ARGUMENTS)
 
-        # Register callback to handle device alarms.
-        controller.device.add_alarms_handler(self.alarms_handler)
-        controller.device.listen_alarms(alarms=(ALARM_MOTION, ALARM_SENSOR))
-
     async def stream_source(self):
         """Return the stream source."""
         return self._stream_url
@@ -92,6 +85,11 @@ class BewardCamera(Camera):
     def name(self):
         """Get the name of the camera."""
         return self._name
+
+    def camera_image(self):
+        """Return camera image."""
+        return run_coroutine_threadsafe(
+            self.async_camera_image(), self.hass.loop).result()
 
     async def async_camera_image(self):
         """Pull a still image from the camera."""
@@ -134,47 +132,3 @@ class BewardCamera(Camera):
                 ffmpeg_manager.ffmpeg_stream_content_type)
         finally:
             await stream.close()
-
-    def camera_image(self):
-        """Return camera image."""
-        return run_coroutine_threadsafe(
-            self.async_camera_image(), self.hass.loop).result()
-
-    def _cache_image(self, event: str, image):
-        """Save image for event to cache."""
-        image_path = self._controller.history_image_path(event)
-        tmp_filename = ""
-        tmp_path = os.path.split(image_path)[0]
-        _LOGGER.debug('Save camera photo to %s' % image_path)
-        try:
-            # Modern versions of Python tempfile create
-            # this file with mode 0o600
-            with tempfile.NamedTemporaryFile(
-                    mode="wb", dir=tmp_path, delete=False) as fdesc:
-                fdesc.write(image)
-                tmp_filename = fdesc.name
-            os.chmod(tmp_filename, 0o644)
-            os.replace(tmp_filename, image_path)
-        except OSError as error:
-            _LOGGER.exception('Saving image file failed: %s', image_path)
-            raise error
-        finally:
-            if os.path.exists(tmp_filename):
-                try:
-                    os.remove(tmp_filename)
-                except OSError as err:
-                    # If we are cleaning up then something else
-                    # went wrong, so we should suppress likely
-                    # follow-on errors in the cleanup
-                    _LOGGER.error(
-                        "Image replacement cleanup failed: %s", err)
-
-    def alarms_handler(self, device, timestamp: datetime, alarm: str,
-                       state: bool):
-        """Handle device's alarm events."""
-        _LOGGER.debug('Handle alarm "%s". State: %s' % (alarm, state))
-        if alarm in (ALARM_MOTION, ALARM_SENSOR):
-            event = ALARMS_TO_EVENTS[alarm]
-            if state:
-                self._cache_image(event, self.camera_image())
-            self._controller.set_event_state(timestamp, event, state)

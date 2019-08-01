@@ -1,12 +1,14 @@
 """Binary sensor platform for Beward devices."""
 import logging
 
+from homeassistant.components.amcrest import service_signal
 from homeassistant.components.binary_sensor import BinarySensorDevice, \
-    DEVICE_CLASS_OCCUPANCY, DEVICE_CLASS_MOTION
+    DEVICE_CLASS_MOTION
 from homeassistant.const import ATTR_ATTRIBUTION
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from beward import BewardCamera, BewardDoorbell
-from custom_components.beward import BewardController
+from custom_components.beward import BewardController, UPDATE_BEWARD
 from . import ATTRIBUTION, DATA_BEWARD, ATTR_DEVICE_ID, EVENT_MOTION, \
     EVENT_DING, CAT_DOORBELL, CAT_CAMERA
 
@@ -46,6 +48,7 @@ class BewardBinarySensor(BinarySensorDevice):
         """Initialize a sensor for Beward device."""
         super().__init__()
 
+        self._unsub_dispatcher = None
         self._sensor_type = sensor_type
         self._controller = controller
         self._name = "{0} {1}".format(
@@ -93,6 +96,22 @@ class BewardBinarySensor(BinarySensorDevice):
 
     def update(self):
         """Get the latest data and updates the state."""
-        _LOGGER.debug("Updating data for %s binary sensor", self._name)
         self._state = self._controller.event_state.get(
             self._sensor_type, False)
+        _LOGGER.debug('New state for "%s" binary sensor: %s', self._name,
+                      self._state)
+
+    async def async_on_demand_update(self):
+        """Call update method."""
+        self.async_schedule_update_ha_state(True)
+
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        self._unsub_dispatcher = async_dispatcher_connect(
+            self.hass,
+            service_signal(UPDATE_BEWARD, self._controller.unique_id),
+            self.async_on_demand_update)
+
+    async def async_will_remove_from_hass(self):
+        """Disconnect from update signal."""
+        self._unsub_dispatcher()
