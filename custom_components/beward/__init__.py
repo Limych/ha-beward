@@ -7,12 +7,16 @@ https://github.com/Limych/ha-beward
 
 import logging
 import os
+import tempfile
 from datetime import datetime
 
 import homeassistant.helpers.config_validation as cv
+import homeassistant.util.dt as dt_util
 import voluptuous as vol
+from homeassistant.components.amcrest import service_signal
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
     CONF_DEVICES, CONF_NAME
+from homeassistant.helpers.dispatcher import dispatcher_send
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
@@ -23,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "0.2.2"
+VERSION = "0.3.0"
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",
@@ -37,6 +41,7 @@ ATTRIBUTION = "Data provided by Beward device."
 
 DATA_BEWARD = DOMAIN
 STORAGE_KEY = DOMAIN
+UPDATE_BEWARD = f"{DATA_BEWARD}_update"
 
 CONF_EVENTS = 'events'
 CONF_STREAM = 'stream'
@@ -161,6 +166,10 @@ class BewardController:
         self.event_state = {}
         self.sensors = []
 
+        # Register callback to handle device alarms.
+        self._device.add_alarms_handler(self._alarms_handler)
+        self._device.listen_alarms(alarms=(ALARM_MOTION, ALARM_SENSOR))
+
     @property
     def unique_id(self):
         """Return a device unique ID."""
@@ -182,9 +191,56 @@ class BewardController:
         return self.hass.config.path(STORAGE_DIR, file_name)
 
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
+        """Call Beward to refresh information."""
+        _LOGGER.debug("Updating Beward component")
         self.event_timestamp[event] = timestamp
         self.event_state[event] = state
 
         for sensor in self.sensors:
             if hasattr(sensor, 'update'):
                 sensor.update()
+
+    def _cache_image(self, event: str, image):
+        """Save image for event to cache."""
+        image_path = self.history_image_path(event)
+        tmp_filename = ""
+        tmp_path = os.path.split(image_path)[0]
+        _LOGGER.debug('Save camera photo to %s' % image_path)
+        try:
+            # Modern versions of Python tempfile create
+            # this file with mode 0o600
+            with tempfile.NamedTemporaryFile(
+                    mode="wb", dir=tmp_path, delete=False) as fdesc:
+                fdesc.write(image)
+                tmp_filename = fdesc.name
+            os.chmod(tmp_filename, 0o644)
+            os.replace(tmp_filename, image_path)
+        except OSError as error:
+            _LOGGER.exception('Saving image file failed: %s', image_path)
+            raise error
+        finally:
+            if os.path.exists(tmp_filename):
+                try:
+                    os.remove(tmp_filename)
+                except OSError as err:
+                    # If we are cleaning up then something else
+                    # went wrong, so we should suppress likely
+                    # follow-on errors in the cleanup
+                    _LOGGER.error(
+                        "Image replacement cleanup failed: %s", err)
+
+    def _alarms_handler(self, device, timestamp: datetime, alarm: str,
+                        state: bool):
+        """Handle device's alarm events."""
+        timestamp = dt_util.as_local(dt_util.as_utc(timestamp))
+        _LOGGER.debug('Handle alarm "%s". State %s at %s' % (
+            alarm, state, timestamp.isoformat()))
+        if alarm in (ALARM_MOTION, ALARM_SENSOR):
+            event = ALARMS_TO_EVENTS[alarm]
+            self.event_timestamp[event] = timestamp
+            self.event_state[event] = state
+            if state and hasattr(self._device, 'live_image'):
+                self._cache_image(event, self._device.live_image)
+
+            dispatcher_send(
+                self.hass, service_signal(UPDATE_BEWARD, self.unique_id))
