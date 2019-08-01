@@ -6,13 +6,15 @@ from os import path
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
+from homeassistant.components.amcrest import service_signal
 from homeassistant.components.sensor import PLATFORM_SCHEMA
 from homeassistant.const import CONF_MONITORED_CONDITIONS, ATTR_ATTRIBUTION, \
     DEVICE_CLASS_TIMESTAMP
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
 from beward import BewardCamera, BewardDoorbell
-from custom_components.beward import BewardController
+from custom_components.beward import BewardController, UPDATE_BEWARD
 from . import CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, ATTRIBUTION, \
     ATTR_DEVICE_ID, EVENT_MOTION, EVENT_DING
 
@@ -60,6 +62,7 @@ class BewardSensor(Entity):
         """Initialize a sensor for Beward device."""
         super().__init__()
 
+        self._unsub_dispatcher = None
         self._sensor_type = sensor_type
         self._controller = controller
         self._name = "{0} {1}".format(
@@ -132,8 +135,6 @@ class BewardSensor(Entity):
 
     def update(self):
         """Get the latest data and updates the state."""
-        _LOGGER.debug("Updating data for %s sensor", self._name)
-
         event_ts = None
         if self._sensor_type == 'last_motion':
             event_ts = self._get_event_timestamp(EVENT_MOTION)
@@ -149,3 +150,19 @@ class BewardSensor(Entity):
 
         self._state = dt_util.as_local(event_ts.replace(
             microsecond=0)).isoformat() if event_ts else None
+        _LOGGER.debug('New state for "%s" sensor: %s', self._name, self._state)
+
+    async def async_on_demand_update(self):
+        """Call update method."""
+        self.async_schedule_update_ha_state(True)
+
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        self._unsub_dispatcher = async_dispatcher_connect(
+            self.hass,
+            service_signal(UPDATE_BEWARD, self._controller.unique_id),
+            self.async_on_demand_update)
+
+    async def async_will_remove_from_hass(self):
+        """Disconnect from update signal."""
+        self._unsub_dispatcher()
