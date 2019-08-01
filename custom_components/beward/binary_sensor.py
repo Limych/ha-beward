@@ -15,7 +15,7 @@ _LOGGER = logging.getLogger(__name__)
 # Sensor types: Name, category, class
 SENSOR_TYPES = {
     EVENT_DING: [
-        'Ding', [CAT_DOORBELL], DEVICE_CLASS_OCCUPANCY],
+        'Ding', [CAT_DOORBELL], None],
     EVENT_MOTION: [
         'Motion', [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION],
 }
