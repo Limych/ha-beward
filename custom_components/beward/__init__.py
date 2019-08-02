@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "0.4.0"
+VERSION = "0.4.1"
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",
@@ -40,7 +40,7 @@ ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
 DATA_BEWARD = DOMAIN
-UPDATE_BEWARD = f"{DATA_BEWARD}_update"
+UPDATE_BEWARD = f"{DOMAIN}_update"
 
 CONF_EVENTS = 'events'
 CONF_STREAM = 'stream'
