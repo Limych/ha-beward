@@ -58,8 +58,6 @@ class BewardBinarySensor(BinarySensorDevice):
         self._unique_id = '{}-{}'.format(self._controller.unique_id,
                                          self._sensor_type)
 
-        self._controller.sensors.append(self)
-
     @property
     def name(self):
         """Return the name of the sensor."""

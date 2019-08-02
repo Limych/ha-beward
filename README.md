@@ -156,6 +156,46 @@ sensor:
 > **last_motion**:\
 > Return the timestamp from the last motion event captured by the Beward device camera.
 
+<p align="center">* * *</p>
+I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
+<p align="center"><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url"><img alt="Buy Me a Coffe" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/donate-with-paypal.png"></a></p>
+<p align="center"><a href="https://www.patreon.com/join/limych?"><img alt="Support my work on Patreon" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/support-with-patreon.jpg"></a></p>
+
+## Usage tips
+
+### Send history image via Telegram
+
+You can use photos of the last motion and the last ding outside this integration.
+For example, send it via Telegram.
+
+History images are stored in `/config/.storage/beward/`.
+For example, for a camera named "Front door" there will be files `front_door_last_motion.jpg` and `front_door_last_ding.jpg`.
+
+Automation example (see the [Telegram documentation][telegram-photo] for more details how to send images):
+```yaml
+# Example configuration.yaml entry
+homeassistant:
+  whitelist_external_dirs:
+    - /config/.storage/beward  # Required for Home Assistant version 0.48+
+
+automation:
+  - alias: "Front door Ding"
+    trigger:
+      platform: state
+      entity_id: binary_sensor.front_door_ding
+      to: 'on'
+    action:
+      - service: notify.NOTIFIER_NAME
+        data:
+          message: "The doorbell is ringing!"
+          data:
+            photo:
+              file: /config/.storage/beward/front_door_last_ding.jpg
+              caption: "The doorbell is ringing!"
+```
+
+[telegram-photo]: https://www.home-assistant.io/components/telegram/#photo-support
+
 ## Contributions are welcome!
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)

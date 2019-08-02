@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "0.3.0"
+VERSION = "0.4.0"
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",
@@ -40,7 +40,6 @@ ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
 DATA_BEWARD = DOMAIN
-STORAGE_KEY = DOMAIN
 UPDATE_BEWARD = f"{DATA_BEWARD}_update"
 
 CONF_EVENTS = 'events'
@@ -148,11 +147,6 @@ def _check_files(hass):
     return True
 
 
-def hasmethod(o, name: str) -> bool:
-    """Return whether the object has a callable method with the given name."""
-    return hasattr(o, name) and callable(getattr(o, name))
-
-
 class BewardController:
     """Beward device controller."""
 
@@ -164,7 +158,6 @@ class BewardController:
 
         self.event_timestamp = {}
         self.event_state = {}
-        self.sensors = []
 
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
@@ -187,30 +180,29 @@ class BewardController:
 
     def history_image_path(self, event: str):
         """Return the path to saved image."""
-        file_name = '.'.join((STORAGE_KEY, slugify(self.name), event, 'jpg'))
-        return self.hass.config.path(STORAGE_DIR, file_name)
+        file_name = slugify('%s last %s' % (self.name, event)) + '.jpg'
+        return self.hass.config.path(STORAGE_DIR, DOMAIN, file_name)
 
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
         """Call Beward to refresh information."""
         _LOGGER.debug("Updating Beward component")
-        self.event_timestamp[event] = timestamp
+        if state:
+            self.event_timestamp[event] = timestamp
         self.event_state[event] = state
-
-        for sensor in self.sensors:
-            if hasattr(sensor, 'update'):
-                sensor.update()
 
     def _cache_image(self, event: str, image):
         """Save image for event to cache."""
         image_path = self.history_image_path(event)
         tmp_filename = ""
-        tmp_path = os.path.split(image_path)[0]
+        image_dir = os.path.split(image_path)[0]
         _LOGGER.debug('Save camera photo to %s' % image_path)
+        if not os.path.exists(image_dir):
+            os.makedirs(image_dir, mode=0o755)
         try:
             # Modern versions of Python tempfile create
             # this file with mode 0o600
             with tempfile.NamedTemporaryFile(
-                    mode="wb", dir=tmp_path, delete=False) as fdesc:
+                    mode="wb", dir=image_dir, delete=False) as fdesc:
                 fdesc.write(image)
                 tmp_filename = fdesc.name
             os.chmod(tmp_filename, 0o644)
