@@ -27,7 +27,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "0.3.0"
+VERSION = "0.3.1"
 REQUIRED_FILES = [
     ".translations/en.json",
     "binary_sensor.py",
@@ -164,7 +164,6 @@ class BewardController:
 
         self.event_timestamp = {}
         self.event_state = {}
-        self.sensors = []
 
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
@@ -193,12 +192,9 @@ class BewardController:
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
         """Call Beward to refresh information."""
         _LOGGER.debug("Updating Beward component")
-        self.event_timestamp[event] = timestamp
+        if state:
+            self.event_timestamp[event] = timestamp
         self.event_state[event] = state
-
-        for sensor in self.sensors:
-            if hasattr(sensor, 'update'):
-                sensor.update()
 
     def _cache_image(self, event: str, image):
         """Save image for event to cache."""

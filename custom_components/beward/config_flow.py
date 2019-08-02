@@ -35,7 +35,9 @@ class BewardFlowHandler(config_entries.ConfigFlow):
     ):  # pylint: disable=dangerous-default-value
         """Handle a flow initialized by the user."""
         self._errors = {}
+
         return self.async_abort(reason="in_development")
+
         if self._async_current_entries():
             return self.async_abort(reason="single_instance_allowed")
         if self.hass.data.get(DOMAIN):
@@ -90,4 +92,5 @@ class BewardFlowHandler(config_entries.ConfigFlow):
     async def async_step_ssdp(self, info):  # pylint: disable=unused-argument
         """Handle a flow initialized by SSDP/UPNP."""
         self._errors = {}
+
         return self.async_abort(reason="in_development")
