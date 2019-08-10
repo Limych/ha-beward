@@ -4,67 +4,93 @@ Support for viewing the camera feed from a Beward devices.
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
+
 import asyncio
 import datetime
 import logging
 
 import aiohttp
 import async_timeout
-import homeassistant.helpers.config_validation as cv
-import voluptuous as vol
-from homeassistant.components.camera import Camera, SUPPORT_STREAM, \
-    PLATFORM_SCHEMA
+from homeassistant.components.camera import Camera, SUPPORT_STREAM
 from homeassistant.components.ffmpeg import DATA_FFMPEG
-from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.components.local_file.camera import LocalFile
+from homeassistant.const import CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession, \
     async_aiohttp_proxy_stream
+from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.util.async_ import run_coroutine_threadsafe
 
-from . import BewardController, DATA_BEWARD, EVENT_MOTION, EVENT_DING, \
-    CONF_FFMPEG_ARGUMENTS
+import beward
+from .const import CONF_FFMPEG_ARGUMENTS, DATA_BEWARD, EVENT_MOTION, \
+    EVENT_DING, CAT_DOORBELL, CAT_CAMERA, CONF_CAMERAS, UPDATE_BEWARD
+from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
 
-_NAME_LIVE = "{} Live"
-_NAME_LAST_MOTION = "{} Last Motion"
-_NAME_LAST_VISITOR = "{} Last Ding"
-_INTERVAL_LIVE = datetime.timedelta(seconds=1)
-_TIMEOUT = 10  # seconds
+_UPDATE_INTERVAL_LIVE = datetime.timedelta(seconds=1)
+_SESSION_TIMEOUT = 10  # seconds
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Optional(CONF_FFMPEG_ARGUMENTS, default=DEFAULT_ARGUMENTS): cv.string,
-})
+CAMERA_LIVE = 'live'
+CAMERA_LAST_MOTION = 'last_motion'
+CAMERA_LAST_DING = 'last_ding'
+
+CAMERA_NAME_LIVE = "{} Live"
+CAMERA_NAME_LAST_MOTION = "{} Last Motion"
+CAMERA_NAME_LAST_DING = "{} Last Ding"
+
+# Camera types are defined like: name template, device class, device event
+CAMERAS = {
+    CAMERA_LIVE: (
+        CAMERA_NAME_LIVE, [CAT_DOORBELL, CAT_CAMERA], None),
+    CAMERA_LAST_MOTION: (
+        CAMERA_NAME_LAST_MOTION, [CAT_DOORBELL, CAT_CAMERA], EVENT_MOTION),
+    CAMERA_LAST_DING: (
+        CAMERA_NAME_LAST_DING, [CAT_DOORBELL], EVENT_DING),
+}
 
 
 async def async_setup_platform(hass, config, async_add_entities,
                                discovery_info=None):
-    """Set up the Beward camera platform."""
-    for device in hass.data[DATA_BEWARD]:  # type: BewardController
-        async_add_entities([
-            BewardCamera(device, config),
-            LocalFile(
-                _NAME_LAST_MOTION.format(device.name),
-                device.history_image_path(EVENT_MOTION)),
-            LocalFile(
-                _NAME_LAST_VISITOR.format(device.name),
-                device.history_image_path(EVENT_DING)),
-        ])
+    """Set up a cameras for a Beward device."""
+    if discovery_info is None:
+        return
+
+    name = discovery_info[CONF_NAME]
+    controller = hass.data[DATA_BEWARD][name]
+    category = None
+    if isinstance(controller.device, beward.BewardCamera):
+        category = CAT_CAMERA
+    if isinstance(controller.device, beward.BewardDoorbell):
+        category = CAT_DOORBELL
+
+    cameras = []
+    for camera_type in discovery_info[CONF_CAMERAS]:
+        if category in CAMERAS.get(camera_type)[1]:
+            if camera_type == CAMERA_LIVE:
+                cameras.append(BewardCamera(controller, config))
+            else:
+                cameras.append(LocalFile(
+                    CAMERAS.get(camera_type)[0].format(name),
+                    controller.history_image_path(
+                        CAMERAS.get(camera_type)[2])))
+
+    async_add_entities(cameras, True)
 
 
 class BewardCamera(Camera):
     """The camera on a Beward device."""
 
-    def __init__(self, controller: BewardController, config):
+    def __init__(self, controller, config):
         """Initialize the camera on a Beward device."""
         super().__init__()
         self.hass = controller.hass
+        self._unsub_dispatcher = None
         self._controller = controller
-        self._name = _NAME_LIVE.format(controller.name)
+        self._name = CAMERA_NAME_LIVE.format(controller.name)
         self._url = controller.device.live_image_url
         self._stream_url = controller.device.rtsp_live_video_url
         self._last_image = None
-        self._interval = _INTERVAL_LIVE
+        self._interval = _UPDATE_INTERVAL_LIVE
         self._last_update = datetime.datetime.min
 
         self._ffmpeg_input = "-rtsp_transport tcp -i " + self._stream_url
@@ -86,6 +112,11 @@ class BewardCamera(Camera):
         """Get the name of the camera."""
         return self._name
 
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._controller.available
+
     def camera_image(self):
         """Return camera image."""
         return run_coroutine_threadsafe(
@@ -100,7 +131,7 @@ class BewardCamera(Camera):
 
         try:
             websession = async_get_clientsession(self.hass)
-            with async_timeout.timeout(_TIMEOUT):
+            with async_timeout.timeout(_SESSION_TIMEOUT):
                 response = await websession.get(self._url)
 
             self._last_image = await response.read()
@@ -132,3 +163,18 @@ class BewardCamera(Camera):
                 ffmpeg_manager.ffmpeg_stream_content_type)
         finally:
             await stream.close()
+
+    async def async_on_demand_update(self):
+        """Call update method."""
+        self.async_schedule_update_ha_state(True)
+
+    async def async_added_to_hass(self):
+        """Register callbacks."""
+        self._unsub_dispatcher = async_dispatcher_connect(
+            self.hass,
+            service_signal(UPDATE_BEWARD, self._controller.unique_id),
+            self.async_on_demand_update)
+
+    async def async_will_remove_from_hass(self):
+        """Disconnect from update signal."""
+        self._unsub_dispatcher()
