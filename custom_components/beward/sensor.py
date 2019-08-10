@@ -3,25 +3,21 @@
 import logging
 from os import path
 
-import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
-import voluptuous as vol
 from homeassistant.components.amcrest import service_signal
-from homeassistant.components.sensor import PLATFORM_SCHEMA
-from homeassistant.const import CONF_MONITORED_CONDITIONS, ATTR_ATTRIBUTION, \
-    DEVICE_CLASS_TIMESTAMP
+from homeassistant.const import ATTR_ATTRIBUTION, \
+    DEVICE_CLASS_TIMESTAMP, CONF_NAME
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from beward import BewardCamera, BewardDoorbell
-from custom_components.beward import BewardController, UPDATE_BEWARD
-from . import CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, ATTRIBUTION, \
-    ATTR_DEVICE_ID, EVENT_MOTION, EVENT_DING
+import beward
+from .const import CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, ATTRIBUTION, \
+    ATTR_DEVICE_ID, EVENT_MOTION, EVENT_DING, UPDATE_BEWARD
 
 _LOGGER = logging.getLogger(__name__)
 
 # Sensor types: Name, category, class, units, icon
-SENSOR_TYPES = {
+SENSORS = {
     'last_activity': [
         'Last Activity', [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_TIMESTAMP,
         None, 'history'],
@@ -32,33 +28,34 @@ SENSOR_TYPES = {
         'Last Ding', [CAT_DOORBELL], DEVICE_CLASS_TIMESTAMP, None, 'history'],
 }
 
-PLATFORM_SCHEMA = PLATFORM_SCHEMA.extend({
-    vol.Required(CONF_MONITORED_CONDITIONS, default=list(SENSOR_TYPES)):
-        vol.All(cv.ensure_list, [vol.In(SENSOR_TYPES)]),
-})
 
+async def async_setup_platform(hass, config, async_add_entities,
+                               discovery_info=None):
+    """Set up a binary sensors for a Beward device."""
+    if discovery_info is None:
+        return
 
-def setup_platform(hass, config, add_entities, discovery_info=None):
-    """Set up a sensor for a Beward device."""
+    name = discovery_info[CONF_NAME]
+    controller = hass.data[DATA_BEWARD][name]
+    category = None
+    if isinstance(controller.device, beward.BewardCamera):
+        category = CAT_CAMERA
+    if isinstance(controller.device, beward.BewardDoorbell):
+        category = CAT_DOORBELL
+
     sensors = []
-    for controller in hass.data[DATA_BEWARD]:  # type: BewardController
-        category = None
-        if isinstance(controller.device, BewardCamera):
-            category = CAT_CAMERA
-        if isinstance(controller.device, BewardDoorbell):
-            category = CAT_DOORBELL
+    for sensor_type in list(SENSORS):
+        if category in SENSORS.get(sensor_type)[1]:
+            sensors.append(
+                BewardSensor(hass, controller, sensor_type))
 
-        for sensor_type in list(SENSOR_TYPES):
-            if category in SENSOR_TYPES.get(sensor_type)[1]:
-                sensors.append(BewardSensor(hass, controller, sensor_type))
-
-    add_entities(sensors, True)
+    async_add_entities(sensors, True)
 
 
 class BewardSensor(Entity):
     """A sensor implementation for Beward device."""
 
-    def __init__(self, hass, controller: BewardController, sensor_type: str):
+    def __init__(self, hass, controller, sensor_type: str):
         """Initialize a sensor for Beward device."""
         super().__init__()
 
@@ -66,10 +63,10 @@ class BewardSensor(Entity):
         self._sensor_type = sensor_type
         self._controller = controller
         self._name = "{0} {1}".format(
-            self._controller.name, SENSOR_TYPES.get(self._sensor_type)[0])
-        self._device_class = SENSOR_TYPES.get(self._sensor_type)[2]
-        self._units = SENSOR_TYPES.get(self._sensor_type)[3]
-        self._icon = 'mdi:{}'.format(SENSOR_TYPES.get(self._sensor_type)[4])
+            self._controller.name, SENSORS.get(self._sensor_type)[0])
+        self._device_class = SENSORS.get(self._sensor_type)[2]
+        self._units = SENSORS.get(self._sensor_type)[3]
+        self._icon = 'mdi:{}'.format(SENSORS.get(self._sensor_type)[4])
         self._state = None
         self._unique_id = '{}-{}'.format(self._controller.unique_id,
                                          self._sensor_type)
@@ -78,6 +75,11 @@ class BewardSensor(Entity):
     def name(self):
         """Return the name of the sensor."""
         return self._name
+
+    @property
+    def available(self) -> bool:
+        """Return True if entity is available."""
+        return self._controller.available
 
     @property
     def state(self):
@@ -146,9 +148,12 @@ class BewardSensor(Entity):
             if ding_ts is not None and ding_ts > event_ts:
                 event_ts = ding_ts
 
-        self._state = dt_util.as_local(event_ts.replace(
+        state = dt_util.as_local(event_ts.replace(
             microsecond=0)).isoformat() if event_ts else None
-        _LOGGER.debug('New state for "%s" sensor: %s', self._name, self._state)
+        if self._state != state:
+            self._state = state
+            _LOGGER.debug('%s sensor state changed to "%s"', self._name,
+                          self._state)
 
     async def async_on_demand_update(self):
         """Call update method."""

@@ -1,3 +1,5 @@
+*Please :star: this repo if you find it useful*
+
 # ha-beward
 
 [![GitHub Release][releases-shield]][releases]
@@ -56,96 +58,84 @@ To enable Beward device, add the following to your `configuration.yaml` file:
 ```yaml
 # Example configuration.yaml entry
 beward:
-  devices:
-    - host: my_doorbell_host_ip
-      username: my_username
-      password: my_password
+  - host: HOST_ADDRESS_CAMERA
+    username: YOUR_USERNAME
+    password: YOUR_PASSWORD
 ```
 
 ### Configuration variables
 
-**devices**:\
-  _(list) (Required)_\
-  List of configs to connect to devices.
+**host**:\
+  _(string) (Required)_\
+  The IP address or hostname of your Beward device. If using a hostname, make sure the DNS works as expected.
 
-> **host**:\
->   _(string) (Required)_\
->   The IP-address of your Beward device.
-> 
-> **username**:\
->   _(string) (Required)_\
->   The username for accessing your Beward device.
-> 
-> **password**:\
->   _(string) (Required)_\
->   The password for accessing your Beward device.
-> 
-> **stream**:\
->   _(number) (Optional)_\
->   Video stream from device.\
->   _Default value: 0_
-> 
-> **name**:\
->   _(string) (Optional)_\
->   Name to use in the frontend.\
->   _Default value: "Beward <device_id>"_
+**username**:\
+  _(string) (Required)_\
+  The username for accessing your Beward device.
 
-## Camera
+**password**:\
+  _(string) (Required)_\
+  The password for accessing your Beward device.
 
-Once you have enabled the [Beward component](#configuration), you can start using the camera platform. Add the following to your `configuration.yaml` file:
+**name**:\
+  _(string) (Optional)_\
+  This parameter allows you to override the name of your Beward device in the frontend.\
+  _Default value: "Beward <device_id>"_
 
-```yaml
-# Example configuration.yaml entry
-camera:
-  - platform: beward
-```
+**port**:\
+  _(integer) (Optional)_\
+  The port that the Beward device is running on.\
+  _Default value: 80_
 
-### Configuration variables
+**rtsp_port**:\
+  _(integer) (Optional)_\
+  The RTSP port that the Beward camera is running on.\
+  _Default value: Autodetect from the device_
+
+**stream**:\
+  _(integer) (Optional)_\
+  Number of video stream from Beward device.\
+  _Default value: 0_
 
 **ffmpeg_arguments**:\
   _(string) (Optional)_\
   Extra options to pass to ffmpeg, e.g., image quality or video filter options.\
   _Default value: "-pred 1"_
 
-**Note:** To be able to playback the last capture, it is required to install the `ffmpeg` component. Make sure to follow the steps mentioned at [FFMPEG documentation][ffmpeg-doc].
+**Note:** To be able to playback the live stream, it is required to install the `ffmpeg` component. Make sure to follow the steps mentioned at [FFMPEG documentation][ffmpeg-doc].
 
-## Binary Sensor
-
-Once you have enabled the [Beward component](#configuration), you can start using a binary sensor platform. Add the following to your `configuration.yaml` file:
-
-```yaml
-# Example configuration.yaml entry
-binary_sensor:
-  - platform: beward
-```
-
-### Configuration variables
-
-**monitored_conditions**:\
+**cameras**:\
   _(list) (Optional)_\
-  Conditions to display in the frontend. The following conditions can be monitored. If not specified, all conditions below will be enabled.
+  Camera types to display in the frontend. The following cameras can be added:\
+  _Default value: all cameras below_
+
+> **live**:\
+> Live view camera.
+>
+> **last_motion**:\
+> Camera which store photo of last motion.
+>
+> **last_ding**:\
+> Camera which store photo of last visitor.
+
+**binary_sensors**:\
+  _(list) (Optional)_\
+  Conditions to display in the frontend. The following conditions can be monitored:\
+  _Default value: None_
 
 > **ding**:\
-> Return a boolean value when the doorbell button was pressed.
+> Return `on` when a doorbell button is pressed, `off` when not.
 > 
 > **motion**:\
-> Return a boolean value when a movement was detected by the camera.
+> Return `on` when a motion is detected, `off` when not.
+> 
+> **online**:\
+> Return `on` when camera is available (i.e., responding to commands), `off` when not.
 
-## Sensor
-
-Once you have enabled the [Beward component](#configuration), you can start using a sensor platform. Add the following to your `configuration.yaml` file:
-
-```yaml
-# Example configuration.yaml entry
-sensor:
-  - platform: beward
-```
-
-### Configuration variables
-
-**monitored_conditions**:\
+**sensors**:\
   _(list) (Optional)_\
-  Conditions to display in the frontend. The following conditions can be monitored. If not specified, all conditions below will be enabled.
+  Conditions to display in the frontend. The following conditions can be monitored:\
+  _Default value: None_
 
 > **last_activity**:\
 > Return the timestamp from the last event captured (ding/motion/on demand) by the Beward device camera.
@@ -160,6 +150,32 @@ sensor:
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
 <p align="center"><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url"><img alt="Buy Me a Coffe" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/donate-with-paypal.png"></a></p>
 <p align="center"><a href="https://www.patreon.com/join/limych?"><img alt="Support my work on Patreon" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/support-with-patreon.jpg"></a></p>
+
+## Advanced Configuration
+
+You can also use this more advanced configuration example:
+
+```yaml
+# Example configuration.yaml entry
+beward:
+  - host: HOST_ADDRESS_CAMERA_1
+    username: YOUR_USERNAME
+    password: YOUR_PASSWORD
+    binary_sensors:
+      - motion
+      - online
+    sensors:
+      - last_ding
+
+  # Add second camera
+  - host: HOST_ADDRESS_CAMERA_2
+    username: YOUR_USERNAME
+    password: YOUR_PASSWORD
+    name: "Back door"
+    rtsp_port: 1554
+    camera:
+      - last_motion
+```
 
 ## Usage tips
 

@@ -8,7 +8,7 @@
     "@Limych"
   ],
   "requirements": [
-    "beward~=0.10"
+    "beward~=0.11"
   ],
   "homeassistant": "0.96.0",
   "ssdp": {

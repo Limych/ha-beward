@@ -13,64 +13,49 @@ from datetime import datetime
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
-from homeassistant.components.amcrest import service_signal
+from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
+from homeassistant.components.camera import DOMAIN as CAMERA
+from homeassistant.components.sensor import DOMAIN as SENSOR
+from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
-    CONF_DEVICES, CONF_NAME
+    CONF_NAME, CONF_PORT, CONF_BINARY_SENSORS, CONF_SENSORS
+from homeassistant.exceptions import PlatformNotReady
+from homeassistant.helpers import discovery
 from homeassistant.helpers.dispatcher import dispatcher_send
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
-from beward import BewardGeneric
+import beward
 from beward.const import ALARM_MOTION, ALARM_SENSOR
+from .helpers import service_signal
+from .binary_sensor import BINARY_SENSORS
+from .camera import CAMERAS
+from .const import CONF_STREAM, DOMAIN, VERSION, ISSUE_URL, DATA_BEWARD, \
+    REQUIRED_FILES, ALARMS_TO_EVENTS, UPDATE_BEWARD, CONF_RTSP_PORT, \
+    CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS
+from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
-
-# Base component constants
-DOMAIN = "beward"
-VERSION = "0.4.0"
-REQUIRED_FILES = [
-    ".translations/en.json",
-    "binary_sensor.py",
-    "camera.py",
-    "config_flow.py",
-    "manifest.json",
-    "sensor.py",
-]
-ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
-ATTRIBUTION = "Data provided by Beward device."
-
-DATA_BEWARD = DOMAIN
-UPDATE_BEWARD = f"{DATA_BEWARD}_update"
-
-CONF_EVENTS = 'events'
-CONF_STREAM = 'stream'
-CONF_FFMPEG_ARGUMENTS = 'ffmpeg_arguments'
-
-EVENT_MOTION = 'motion'
-EVENT_DING = 'ding'
-
-ALARMS_TO_EVENTS = {
-    ALARM_MOTION: EVENT_MOTION,
-    ALARM_SENSOR: EVENT_DING,
-}
-
-ATTR_DEVICE_ID = 'device_id'
-
-CAT_DOORBELL = 'doorbell'
-CAT_CAMERA = 'camera'
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_HOST): cv.string,
     vol.Required(CONF_USERNAME): cv.string,
     vol.Required(CONF_PASSWORD): cv.string,
     vol.Optional(CONF_NAME): cv.string,
+    vol.Optional(CONF_PORT, default=80): int,
+    vol.Optional(CONF_RTSP_PORT): int,
     vol.Optional(CONF_STREAM, default=0): int,
+    vol.Optional(CONF_FFMPEG_ARGUMENTS, default=DEFAULT_ARGUMENTS): cv.string,
+    vol.Optional(CONF_CAMERAS, default=list(CAMERAS)):
+        vol.All(cv.ensure_list, [vol.In(CAMERAS)]),
+    vol.Optional(CONF_BINARY_SENSORS):
+        vol.All(cv.ensure_list, [vol.In(BINARY_SENSORS)]),
+    vol.Optional(CONF_SENSORS):
+        vol.All(cv.ensure_list, [vol.In(SENSORS)]),
 })
 
 CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.Schema({
-        vol.Required(CONF_DEVICES): vol.All(cv.ensure_list, [DEVICE_SCHEMA])
-    }),
+    DOMAIN: vol.All(cv.ensure_list, [DEVICE_SCHEMA])
 }, extra=vol.ALLOW_EXTRA)
 
 
@@ -79,27 +64,33 @@ def setup(hass, config):
     # Print startup message
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.info('If you have any issues with this you need to open an issue '
-                 'here: %s' % ISSUE_URL)
+                 'here: %s', ISSUE_URL)
 
     # Check that all required files are present
-    file_check = _check_files(hass)
-    if not file_check:
-        return False
+    # if not _check_files(hass):
+    #     return False
 
-    from beward import Beward
+    hass.data.setdefault(DATA_BEWARD, {})
 
-    devices = []
-
-    for index, device_config in enumerate(config[DOMAIN][CONF_DEVICES]):
+    for index, device_config in enumerate(config[DOMAIN]):
         device_ip = device_config.get(CONF_HOST)
+        name = device_config.get(CONF_NAME)
         username = device_config.get(CONF_USERNAME)
         password = device_config.get(CONF_PASSWORD)
+        port = device_config.get(CONF_PORT)
+        rtsp_port = device_config.get(CONF_RTSP_PORT)
         stream = device_config.get(CONF_STREAM)
+        ffmpeg_arguments = config.get(CONF_FFMPEG_ARGUMENTS)
+        cameras = device_config.get(CONF_CAMERAS)
+        binary_sensors = device_config.get(CONF_BINARY_SENSORS)
+        sensors = device_config.get(CONF_SENSORS)
 
-        beward = Beward.factory(device_ip, username, password, stream=stream)
+        device = beward.Beward.factory(
+            device_ip, username, password, port=port, rtsp_port=rtsp_port,
+            stream=stream)
 
-        if beward is None or not beward.ready:
-            if beward is None:
+        if device is None or not device.available:
+            if device is None:
                 err_msg = "Authorization rejected by Beward device" + \
                           " for %s@%s" % username, device_ip
             else:
@@ -113,19 +104,42 @@ def setup(hass, config):
                 ''.format(err_msg),
                 title='Beward device Configuration Failure',
                 notification_id='beward_connection_error')
-            return False
+            raise PlatformNotReady
 
-        controller = BewardController(
-            hass, beward,
-            device_config.get(CONF_NAME)
-            or 'Beward %s' % beward.system_info.get('DeviceID',
-                                                    '#%d' % (index + 1)))
+        if name is None:
+            name = 'Beward %s' % device.system_info.get('DeviceID',
+                                                        '#%d' % (index + 1))
+        if name in list(hass.data[DATA_BEWARD]):
+            _LOGGER.error('Duplicate name! '
+                          'Beward device "%s" is already exists.', name)
+            continue
 
-        devices.append(controller)
+        controller = BewardController(hass, device, name)
+        hass.data[DATA_BEWARD][name] = controller
         _LOGGER.info('Connected to Beward device "%s" as %s@%s',
                      controller.name, username, device_ip)
 
-    hass.data[DATA_BEWARD] = devices
+        if cameras:
+            discovery.load_platform(hass, CAMERA, DOMAIN, {
+                CONF_NAME: name,
+                CONF_CAMERAS: cameras,
+                CONF_FFMPEG_ARGUMENTS: ffmpeg_arguments,
+            }, config)
+
+        if binary_sensors:
+            discovery.load_platform(hass, BINARY_SENSOR, DOMAIN, {
+                CONF_NAME: name,
+                CONF_BINARY_SENSORS: binary_sensors,
+            }, config)
+
+        if sensors:
+            discovery.load_platform(hass, SENSOR, DOMAIN, {
+                CONF_NAME: name,
+                CONF_SENSORS: sensors,
+            }, config)
+
+    if not hass.data[DATA_BEWARD]:
+        return False
 
     return True
 
@@ -150,12 +164,13 @@ def _check_files(hass):
 class BewardController:
     """Beward device controller."""
 
-    def __init__(self, hass, device: BewardGeneric, name: str):
+    def __init__(self, hass, device: beward.BewardGeneric, name: str):
         """Initialize configured device."""
         self.hass = hass
         self._device = device
         self._name = name
 
+        self._available = True
         self.event_timestamp = {}
         self.event_state = {}
 
@@ -177,6 +192,16 @@ class BewardController:
     def device(self):
         """Get the configured device."""
         return self._device
+
+    @property
+    def available(self) -> bool:
+        """Return True if device is available."""
+        available = self._device.available
+        if self._available != available:
+            self._available = available
+            _LOGGER.warning('Device "%s" is %s', self._name,
+                            'reconnected' if available else 'unavailable')
+        return self._available
 
     def history_image_path(self, event: str):
         """Return the path to saved image."""
@@ -227,11 +252,11 @@ class BewardController:
         timestamp = dt_util.as_local(dt_util.as_utc(timestamp))
         _LOGGER.debug('Handle alarm "%s". State %s at %s' % (
             alarm, state, timestamp.isoformat()))
-        if alarm in (ALARM_MOTION, ALARM_SENSOR):
+        if alarm in (ALARM_MOTION, ALARM_SENSOR) and device == self._device:
             event = ALARMS_TO_EVENTS[alarm]
             self.event_timestamp[event] = timestamp
             self.event_state[event] = state
-            if state and hasattr(self._device, 'live_image'):
+            if state and isinstance(self._device, beward.BewardCamera):
                 self._cache_image(event, self._device.live_image)
 
             dispatcher_send(
