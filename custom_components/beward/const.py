@@ -8,10 +8,8 @@ VERSION = "0.5.0"
 DATA_BEWARD = DOMAIN
 UPDATE_BEWARD = f"{DOMAIN}_update"
 REQUIRED_FILES = [
-    ".translations/en.json",
     "binary_sensor.py",
     "camera.py",
-    "config_flow.py",
     "const.py",
     "helpers.py",
     "manifest.json",

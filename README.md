@@ -5,6 +5,7 @@
 [![GitHub Release][releases-shield]][releases]
 [![GitHub Activity][commits-shield]][commits]
 [![License][license-shield]](LICENSE.md)
+![Requires.io](https://img.shields.io/requires/github/Limych/ha-beward)
 
 [![hacs][hacsbadge]][hacs]
 ![Project Maintenance][maintenance-shield]
