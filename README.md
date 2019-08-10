@@ -102,7 +102,7 @@ beward:
   Extra options to pass to ffmpeg, e.g., image quality or video filter options.\
   _Default value: "-pred 1"_
 
-**Note:** To be able to playback the last capture, it is required to install the `ffmpeg` component. Make sure to follow the steps mentioned at [FFMPEG documentation][ffmpeg-doc].
+**Note:** To be able to playback the live stream, it is required to install the `ffmpeg` component. Make sure to follow the steps mentioned at [FFMPEG documentation][ffmpeg-doc].
 
 **cameras**:\
   _(list) (Optional)_\
