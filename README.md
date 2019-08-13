@@ -2,19 +2,19 @@
 
 # ha-beward
 
-[![GitHub Release][releases-shield]][releases]
-[![GitHub Activity][commits-shield]][commits]
-[![License][license-shield]](LICENSE.md)
+[![GitHub Release](https://img.shields.io/github/tag-date/Limych/ha-beward?label=release&style=popout)](https://github.com/Limych/ha-beward/releases)
+[![GitHub Activity](https://img.shields.io/github/commit-activity/y/Limych/ha-beward.svg?style=popout)](https://github.com/Limych/ha-beward/commits/master)
+[![License](https://img.shields.io/github/license/Limych/ha-beward.svg?style=popout)](LICENSE.md)
 ![Requires.io](https://img.shields.io/requires/github/Limych/ha-beward)
 
-[![hacs][hacsbadge]][hacs]
-![Project Maintenance][maintenance-shield]
+[![hacs](https://img.shields.io/badge/HACS-Custom-orange.svg?style=popout)](https://github.com/custom-components/hacs)
+![Project Maintenance](https://img.shields.io/badge/maintainer-Andrey%20Khrolenok%20%40Limych-blue.svg?style=popout)
 
-[![Community Forum][forum-shield]][forum]
+[![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)](https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388)
 
 The `beward` implementation allows you to integrate your [Beward devices][beward] in Home Assistant.
 
-![Beward Logo][exampleimg]
+![Beward Logo](beward.png)
 
 There is currently support for the following device types within Home Assistant:
 - [Binary Sensor](#binary-sensor)
@@ -124,14 +124,14 @@ beward:
   Conditions to display in the frontend. The following conditions can be monitored:\
   _Default value: None_
 
-> **ding**:\
-> Return `on` when a doorbell button is pressed, `off` when not.
+> **online**:\
+> Return `on` when camera is available (i.e., responding to commands), `off` when not.
 > 
 > **motion**:\
 > Return `on` when a motion is detected, `off` when not.
 > 
-> **online**:\
-> Return `on` when camera is available (i.e., responding to commands), `off` when not.
+> **ding**:\
+> Return `on` when a doorbell button is pressed, `off` when not.
 
 **sensors**:\
   _(list) (Optional)_\
@@ -141,11 +141,11 @@ beward:
 > **last_activity**:\
 > Return the timestamp from the last event captured (ding/motion/on demand) by the Beward device camera.
 > 
-> **last_ding**:\
-> Return the timestamp from the last time the Beward doorbell button was pressed.
-> 
 > **last_motion**:\
 > Return the timestamp from the last motion event captured by the Beward device camera.
+> 
+> **last_ding**:\
+> Return the timestamp from the last time the Beward doorbell button was pressed.
 
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
@@ -218,15 +218,4 @@ automation:
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
 
 [beward]: https://www.beward.ru/
-[commits-shield]: https://img.shields.io/github/commit-activity/y/Limych/ha-beward.svg?style=popout
-[commits]: https://github.com/Limych/ha-beward/commits/master
-[hacs]: https://github.com/custom-components/hacs
-[hacsbadge]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=popout
-[exampleimg]: beward.png
-[forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout
-[forum]: https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388
-[license-shield]: https://img.shields.io/github/license/Limych/ha-beward.svg?style=popout
-[maintenance-shield]: https://img.shields.io/badge/maintainer-Andrey%20Khrolenok%20%40Limych-blue.svg?style=popout
-[releases-shield]: https://img.shields.io/github/release/Limych/ha-beward.svg?style=popout
-[releases]: https://github.com/Limych/ha-beward/releases
 [ffmpeg-doc]: https://www.home-assistant.io/components/ffmpeg/
