@@ -3,14 +3,13 @@
   "name": "Beward",
   "documentation": "https://github.com/Limych/ha-beward",
   "dependencies": [],
-  "config_flow": true,
+  "config_flow": false,
   "codeowners": [
     "@Limych"
   ],
   "requirements": [
     "beward~=0.11"
   ],
-  "homeassistant": "0.96.0",
   "ssdp": {
     "st": [
       "upnp:rootdevice"
