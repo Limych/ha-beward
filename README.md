@@ -31,19 +31,16 @@ Currently only doorbells are supported by this integration.
 4. Download _all_ the files from the `custom_components/beward/` directory (folder) in this repository.
 5. Place the files you downloaded in the new directory (folder) you created.
 6. Restart Home Assistant
-7. Choose:
-   - Add `beward:` to your HA configuration.
-   - In the HA UI go to "Configuration" -> "Integrations" click "+" and search for "Beward"
+7. Add `beward:` to your HA configuration.
 
 Using your HA configuration directory (folder) as a starting point you should now also have this:
 
 ```text
-custom_components/beward/.translations/en.json
-custom_components/beward/.translations/ru.json
 custom_components/beward/__init__.py
 custom_components/beward/binary_sensor.py
 custom_components/beward/camera.py
-custom_components/beward/config_flow.py
+custom_components/beward/const.py
+custom_components/beward/helpers.py
 custom_components/beward/manifest.json
 custom_components/beward/sensor.py
 ```
