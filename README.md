@@ -12,7 +12,7 @@
 
 [![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)](https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388)
 
-The `beward` implementation allows you to integrate your [Beward devices][beward] in Home Assistant.
+The `beward` implementation allows you to integrate your [Beward devices][beward] to Home Assistant.
 
 ![Beward Logo](beward.png)
 
