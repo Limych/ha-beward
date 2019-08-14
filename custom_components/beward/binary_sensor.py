@@ -3,16 +3,18 @@
 import logging
 from datetime import timedelta
 
-from homeassistant.components.amcrest import service_signal
 from homeassistant.components.binary_sensor import BinarySensorDevice, \
     DEVICE_CLASS_MOTION, DEVICE_CLASS_CONNECTIVITY
-from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME
+from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME, \
+    CONF_BINARY_SENSORS
+from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 import beward
 from .const import BINARY_SENSOR_SCAN_INTERVAL_SECS, EVENT_DING, \
     EVENT_MOTION, EVENT_ONLINE, CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, \
-    ATTRIBUTION, ATTR_DEVICE_ID, UPDATE_BEWARD
+    ATTRIBUTION, ATTR_DEVICE_ID
+from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -44,7 +46,7 @@ async def async_setup_platform(hass, config, async_add_entities,
         category = CAT_DOORBELL
 
     sensors = []
-    for sensor_type in list(BINARY_SENSORS):
+    for sensor_type in discovery_info[CONF_BINARY_SENSORS]:
         if category in BINARY_SENSORS.get(sensor_type)[1]:
             sensors.append(
                 BewardBinarySensor(hass, controller, sensor_type))
@@ -108,9 +110,13 @@ class BewardBinarySensor(BinarySensorDevice):
         }
         return attrs
 
-    def update(self):
+    async def async_update(self):
         """Get the latest data and updates the state."""
+        self._update_callback(update_ha_state=False)
 
+    @callback
+    def _update_callback(self, update_ha_state=True):
+        """Get the latest data and updates the state."""
         state = self._controller.available \
             if self._sensor_type == EVENT_ONLINE \
             else self._controller.event_state.get(self._sensor_type, False)
@@ -118,17 +124,14 @@ class BewardBinarySensor(BinarySensorDevice):
             self._state = state
             _LOGGER.debug('%s binary sensor state changed to "%s"', self._name,
                           self._state)
-
-    async def async_on_demand_update(self):
-        """Call update method."""
-        self.async_schedule_update_ha_state(True)
+            if update_ha_state:
+                self.async_schedule_update_ha_state()
 
     async def async_added_to_hass(self):
         """Register callbacks."""
         self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass,
-            service_signal(UPDATE_BEWARD, self._controller.unique_id),
-            self.async_on_demand_update)
+            self.hass, service_signal('update', self._controller.unique_id),
+            self._update_callback)
 
     async def async_will_remove_from_hass(self):
         """Disconnect from update signal."""

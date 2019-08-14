@@ -17,13 +17,11 @@ from homeassistant.components.local_file.camera import LocalFile
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession, \
     async_aiohttp_proxy_stream
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.util.async_ import run_coroutine_threadsafe
 
 import beward
 from .const import CONF_FFMPEG_ARGUMENTS, DATA_BEWARD, EVENT_MOTION, \
-    EVENT_DING, CAT_DOORBELL, CAT_CAMERA, CONF_CAMERAS, UPDATE_BEWARD
-from .helpers import service_signal
+    EVENT_DING, CAT_DOORBELL, CAT_CAMERA, CONF_CAMERAS
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -163,18 +161,3 @@ class BewardCamera(Camera):
                 ffmpeg_manager.ffmpeg_stream_content_type)
         finally:
             await stream.close()
-
-    async def async_on_demand_update(self):
-        """Call update method."""
-        self.async_schedule_update_ha_state(True)
-
-    async def async_added_to_hass(self):
-        """Register callbacks."""
-        self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass,
-            service_signal(UPDATE_BEWARD, self._controller.unique_id),
-            self.async_on_demand_update)
-
-    async def async_will_remove_from_hass(self):
-        """Disconnect from update signal."""
-        self._unsub_dispatcher()
