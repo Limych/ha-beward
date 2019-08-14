@@ -15,8 +15,8 @@ import homeassistant.util.dt as dt_util
 import voluptuous as vol
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as CAMERA
-from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
+from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
     CONF_NAME, CONF_PORT, CONF_BINARY_SENSORS, CONF_SENSORS
 from homeassistant.exceptions import PlatformNotReady
@@ -27,12 +27,12 @@ from homeassistant.util import slugify
 
 import beward
 from beward.const import ALARM_MOTION, ALARM_SENSOR
-from .helpers import service_signal
 from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
 from .const import CONF_STREAM, DOMAIN, VERSION, ISSUE_URL, DATA_BEWARD, \
-    REQUIRED_FILES, ALARMS_TO_EVENTS, UPDATE_BEWARD, CONF_RTSP_PORT, \
-    CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS
+    REQUIRED_FILES, ALARMS_TO_EVENTS, CONF_RTSP_PORT, CONF_CAMERAS, \
+    CONF_FFMPEG_ARGUMENTS
+from .helpers import service_signal
 from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
@@ -254,10 +254,11 @@ class BewardController:
             alarm, state, timestamp.isoformat()))
         if alarm in (ALARM_MOTION, ALARM_SENSOR) and device == self._device:
             event = ALARMS_TO_EVENTS[alarm]
-            self.event_timestamp[event] = timestamp
             self.event_state[event] = state
-            if state and isinstance(self._device, beward.BewardCamera):
-                self._cache_image(event, self._device.live_image)
+            if state:
+                self.event_timestamp[event] = timestamp
+                if isinstance(self._device, beward.BewardCamera):
+                    self._cache_image(event, self._device.live_image)
 
             dispatcher_send(
-                self.hass, service_signal(UPDATE_BEWARD, self.unique_id))
+                self.hass, service_signal('update', self.unique_id))

@@ -4,9 +4,8 @@ from beward.const import ALARM_MOTION, ALARM_SENSOR
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "1.0.0"
+VERSION = "1.0.1"
 DATA_BEWARD = DOMAIN
-UPDATE_BEWARD = f"{DOMAIN}_update"
 REQUIRED_FILES = [
     "binary_sensor.py",
     "camera.py",
