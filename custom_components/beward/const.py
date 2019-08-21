@@ -2,19 +2,6 @@
 
 from beward.const import ALARM_MOTION, ALARM_SENSOR
 
-# Base component constants
-DOMAIN = "beward"
-VERSION = "1.0.2"
-DATA_BEWARD = DOMAIN
-REQUIRED_FILES = [
-    "binary_sensor.py",
-    "camera.py",
-    "const.py",
-    "helpers.py",
-    "manifest.json",
-    "sensor.py",
-]
-ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
 CONF_EVENTS = 'events'

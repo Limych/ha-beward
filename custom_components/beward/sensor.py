@@ -11,8 +11,9 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
 import beward
-from .const import CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, ATTRIBUTION, \
-    ATTR_DEVICE_ID, EVENT_MOTION, EVENT_DING
+from . import DATA_BEWARD
+from .const import CAT_DOORBELL, CAT_CAMERA, ATTRIBUTION, ATTR_DEVICE_ID, \
+    EVENT_MOTION, EVENT_DING
 from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)

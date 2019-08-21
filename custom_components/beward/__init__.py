@@ -29,13 +29,26 @@ import beward
 from beward.const import ALARM_MOTION, ALARM_SENSOR
 from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
-from .const import CONF_STREAM, DOMAIN, VERSION, ISSUE_URL, DATA_BEWARD, \
-    REQUIRED_FILES, ALARMS_TO_EVENTS, CONF_RTSP_PORT, CONF_CAMERAS, \
-    CONF_FFMPEG_ARGUMENTS
+from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
+    CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS
 from .helpers import service_signal
 from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
+
+# Base component constants
+DOMAIN = "beward"
+VERSION = "1.0.2"
+ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
+DATA_BEWARD = DOMAIN
+REQUIRED_FILES = [
+    "binary_sensor.py",
+    "camera.py",
+    "const.py",
+    "helpers.py",
+    "manifest.json",
+    "sensor.py",
+]
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_HOST): cv.string,
