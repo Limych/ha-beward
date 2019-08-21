@@ -67,8 +67,8 @@ def setup(hass, config):
                  'here: %s', ISSUE_URL)
 
     # Check that all required files are present
-    # if not _check_files(hass):
-    #     return False
+    if not _check_files(hass):
+        return False
 
     hass.data.setdefault(DATA_BEWARD, {})
 
