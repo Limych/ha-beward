@@ -7,13 +7,13 @@
 [![License](https://img.shields.io/github/license/Limych/ha-beward.svg?style=popout)](LICENSE.md)
 ![Requires.io](https://img.shields.io/requires/github/Limych/ha-beward)
 
-[![hacs](https://img.shields.io/badge/HACS-Custom-orange.svg?style=popout)](https://github.com/custom-components/hacs)
+[![hacs](https://img.shields.io/badge/HACS-Default-orange.svg?style=popout)][hacs]
 ![Project Maintenance](https://img.shields.io/badge/maintainer-Andrey%20Khrolenok%20%40Limych-blue.svg?style=popout)
 
 [![GitHub pull requests](https://img.shields.io/github/issues-pr/Limych/ha-beward?style=popout)](https://github.com/Limych/ha-beward/pulls)
 [![Bugs](https://img.shields.io/github/issues/Limych/ha-beward/bug.svg?colorB=red&label=bugs&style=popout)](https://github.com/Limych/ha-beward/issues?q=is%3Aopen+is%3Aissue+label%3ABug)
 
-[![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)](https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388)
+[![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)][forum-support]
 
 The `beward` implementation allows you to integrate your [Beward devices][beward] to Home Assistant.
 
@@ -25,6 +25,8 @@ There is currently support for the following device types within Home Assistant:
 - [Sensor](#sensor)
 
 Currently only doorbells are supported by this integration.
+
+I also suggest you [visit the support topic][forum-support] on the community forum.
 
 ## Installation
 
@@ -50,8 +52,7 @@ custom_components/beward/sensor.py
 
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
-<p align="center"><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url"><img alt="Buy Me a Coffe" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/donate-with-paypal.png"></a></p>
-<p align="center"><a href="https://www.patreon.com/join/limych?"><img alt="Support my work on Patreon" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/support-with-patreon.jpg"></a></p>
+<p align="center"><br><a href="https://www.patreon.com/join/limych?" target="_blank"><img src="support_patreon.svg" alt="Patreon" width="250" height="49"></a> <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url" target="_blank"><img src="support_paypal.svg" alt="Patreon" width="250" height="49"></a></p>
 
 ## Configuration
 
@@ -149,8 +150,7 @@ beward:
 
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
-<p align="center"><a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url"><img alt="Buy Me a Coffe" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/donate-with-paypal.png"></a></p>
-<p align="center"><a href="https://www.patreon.com/join/limych?"><img alt="Support my work on Patreon" src="https://raw.githubusercontent.com/Limych/HomeAssistantConfiguration/master/docs/images/support-with-patreon.jpg"></a></p>
+<p align="center"><br><a href="https://www.patreon.com/join/limych?" target="_blank"><img src="support_patreon.svg" alt="Patreon" width="250" height="49"></a> <a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url" target="_blank"><img src="support_paypal.svg" alt="Patreon" width="250" height="49"></a></p>
 
 ## Advanced Configuration
 
@@ -217,5 +217,22 @@ automation:
 
 If you want to contribute to this please read the [Contribution guidelines](CONTRIBUTING.md)
 
+## Track updates
+
+You can automatically track new versions of this component and update it by [custom-updater](https://github.com/custom-components/custom_updater) (deprecated) or [HACS][hacs].
+
+For custom-updater to initiate tracking add this lines to you `configuration.yaml` file:
+
+```yaml
+# Example configuration.yaml entry
+custom_updater:
+  track:
+    - components
+  component_urls:
+    - https://raw.githubusercontent.com/Limych/ha-beward/master/tracker.json
+```
+
 [beward]: https://www.beward.ru/
 [ffmpeg-doc]: https://www.home-assistant.io/components/ffmpeg/
+[forum-support]: https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388
+[hacs]: https://github.com/custom-components/hacs
