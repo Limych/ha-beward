@@ -11,9 +11,10 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 import beward
+from . import DATA_BEWARD
 from .const import BINARY_SENSOR_SCAN_INTERVAL_SECS, EVENT_DING, \
-    EVENT_MOTION, EVENT_ONLINE, CAT_DOORBELL, CAT_CAMERA, DATA_BEWARD, \
-    ATTRIBUTION, ATTR_DEVICE_ID
+    EVENT_MOTION, EVENT_ONLINE, CAT_DOORBELL, CAT_CAMERA, ATTRIBUTION, \
+    ATTR_DEVICE_ID
 from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
