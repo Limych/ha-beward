@@ -10,6 +10,9 @@
 [![hacs](https://img.shields.io/badge/HACS-Custom-orange.svg?style=popout)](https://github.com/custom-components/hacs)
 ![Project Maintenance](https://img.shields.io/badge/maintainer-Andrey%20Khrolenok%20%40Limych-blue.svg?style=popout)
 
+[![GitHub pull requests](https://img.shields.io/github/issues-pr/Limych/ha-beward?style=popout)](https://github.com/Limych/ha-beward/pulls)
+[![Bugs](https://img.shields.io/github/issues/Limych/ha-beward/bug.svg?colorB=red&label=bugs&style=popout)](https://github.com/Limych/ha-beward/issues?q=is%3Aopen+is%3Aissue+label%3ABug)
+
 [![Community Forum](https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout)](https://community.home-assistant.io/t/beward-cameras-and-doorbells-integration/129388)
 
 The `beward` implementation allows you to integrate your [Beward devices][beward] to Home Assistant.

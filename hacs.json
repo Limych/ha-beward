@@ -1,0 +1,5 @@
+{
+  "name": "Beward Cameras & Doorbells",
+  "domains": ["beward"],
+  "iot_class": "Local Push"
+}
