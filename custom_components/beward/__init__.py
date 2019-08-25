@@ -38,7 +38,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "1.0.3"
+VERSION = "1.0.4"
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 DATA_BEWARD = DOMAIN
 REQUIRED_FILES = [

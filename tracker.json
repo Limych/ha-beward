@@ -1,6 +1,6 @@
 {
     "beward": {
-        "version": "1.0.3",
+        "version": "1.0.4",
         "local_location": "/custom_components/beward/__init__.py",
         "remote_location": "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/__init__.py",
         "visit_repo": "https://github.com/Limych/ha-beward",
