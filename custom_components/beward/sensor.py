@@ -11,9 +11,8 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
 import beward
-from . import DATA_BEWARD
 from .const import CAT_DOORBELL, CAT_CAMERA, ATTRIBUTION, ATTR_DEVICE_ID, \
-    EVENT_MOTION, EVENT_DING
+    EVENT_MOTION, EVENT_DING, DATA_BEWARD
 from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +52,7 @@ async def async_setup_platform(hass, config, async_add_entities,
     for sensor_type in discovery_info[CONF_SENSORS]:
         if category in SENSORS.get(sensor_type)[1]:
             sensors.append(
-                BewardSensor(hass, controller, sensor_type))
+                BewardSensor(controller, sensor_type))
 
     async_add_entities(sensors, True)
 
@@ -61,7 +60,7 @@ async def async_setup_platform(hass, config, async_add_entities,
 class BewardSensor(Entity):
     """A sensor implementation for Beward device."""
 
-    def __init__(self, hass, controller, sensor_type: str):
+    def __init__(self, controller, sensor_type: str):
         """Initialize a sensor for Beward device."""
         super().__init__()
 

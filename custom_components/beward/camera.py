@@ -20,9 +20,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession, \
 from homeassistant.util.async_ import run_coroutine_threadsafe
 
 import beward
-from . import DATA_BEWARD
 from .const import CONF_FFMPEG_ARGUMENTS, EVENT_MOTION, EVENT_DING, \
-    CAT_DOORBELL, CAT_CAMERA, CONF_CAMERAS
+    CAT_DOORBELL, CAT_CAMERA, CONF_CAMERAS, DATA_BEWARD
 
 _LOGGER = logging.getLogger(__name__)
 
