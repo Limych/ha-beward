@@ -1,6 +1,6 @@
 """Helpers for Beward device component."""
 
-from . import DOMAIN
+from .const import DOMAIN
 
 
 def service_signal(service, ident=None):

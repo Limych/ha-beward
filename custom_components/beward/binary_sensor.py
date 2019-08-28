@@ -11,10 +11,9 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 import beward
-from . import DATA_BEWARD
 from .const import BINARY_SENSOR_SCAN_INTERVAL_SECS, EVENT_DING, \
     EVENT_MOTION, EVENT_ONLINE, CAT_DOORBELL, CAT_CAMERA, ATTRIBUTION, \
-    ATTR_DEVICE_ID
+    ATTR_DEVICE_ID, DATA_BEWARD
 from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
@@ -50,7 +49,7 @@ async def async_setup_platform(hass, config, async_add_entities,
     for sensor_type in discovery_info[CONF_BINARY_SENSORS]:
         if category in BINARY_SENSORS.get(sensor_type)[1]:
             sensors.append(
-                BewardBinarySensor(hass, controller, sensor_type))
+                BewardBinarySensor(controller, sensor_type))
 
     async_add_entities(sensors, True)
 
@@ -58,7 +57,7 @@ async def async_setup_platform(hass, config, async_add_entities,
 class BewardBinarySensor(BinarySensorDevice):
     """A binary sensor implementation for Beward device."""
 
-    def __init__(self, hass, controller, sensor_type: str):
+    def __init__(self, controller, sensor_type: str):
         """Initialize a sensor for Beward device."""
         super().__init__()
 

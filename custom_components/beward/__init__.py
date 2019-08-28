@@ -30,25 +30,12 @@ from beward.const import ALARM_MOTION, ALARM_SENSOR
 from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
 from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
-    CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS
+    CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS, DOMAIN, VERSION, ISSUE_URL, \
+    DATA_BEWARD
 from .helpers import service_signal
 from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
-
-# Base component constants
-DOMAIN = "beward"
-VERSION = "1.0.4"
-ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
-DATA_BEWARD = DOMAIN
-REQUIRED_FILES = [
-    "binary_sensor.py",
-    "camera.py",
-    "const.py",
-    "helpers.py",
-    "manifest.json",
-    "sensor.py",
-]
 
 DEVICE_SCHEMA = vol.Schema({
     vol.Required(CONF_HOST): cv.string,
@@ -78,10 +65,6 @@ def setup(hass, config):
     _LOGGER.debug('Version %s', VERSION)
     _LOGGER.info('If you have any issues with this you need to open an issue '
                  'here: %s', ISSUE_URL)
-
-    # Check that all required files are present
-    if not _check_files(hass):
-        return False
 
     hass.data.setdefault(DATA_BEWARD, {})
 
@@ -152,23 +135,6 @@ def setup(hass, config):
             }, config)
 
     if not hass.data[DATA_BEWARD]:
-        return False
-
-    return True
-
-
-def _check_files(hass):
-    """Return bool that indicates if all files are present."""
-    # Verify that the user downloaded all required files.
-    base = f"{hass.config.path()}/custom_components/{DOMAIN}/"
-    missing = []
-    for file in REQUIRED_FILES:
-        fullpath = "{}{}".format(base, file)
-        if not os.path.exists(fullpath):
-            missing.append(file)
-
-    if missing:
-        _LOGGER.critical("The following files are missing: %s", str(missing))
         return False
 
     return True
