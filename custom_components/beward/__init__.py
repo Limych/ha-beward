@@ -31,7 +31,7 @@ from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
 from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
     CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS, DOMAIN, VERSION, ISSUE_URL, \
-    DATA_BEWARD
+    DATA_BEWARD, SUPPORT_URL
 from .helpers import service_signal
 from .sensor import SENSORS
 
@@ -81,9 +81,20 @@ def setup(hass, config):
         binary_sensors = device_config.get(CONF_BINARY_SENSORS)
         sensors = device_config.get(CONF_SENSORS)
 
-        device = beward.Beward.factory(
-            device_ip, username, password, port=port, rtsp_port=rtsp_port,
-            stream=stream)
+        try:
+            device = beward.Beward.factory(
+                device_ip, username, password, port=port, rtsp_port=rtsp_port,
+                stream=stream)
+        except ValueError as exc:
+            _LOGGER.error(exc)
+            hass.components.persistent_notification.create(
+                'Error: {}<br />'
+                'Please <a href="{}" target="_blank">contact the developers '
+                'of the component</a> to solve this problem.'
+                ''.format(exc, SUPPORT_URL),
+                title='Beward device Initialization Failure',
+                notification_id='beward_connection_error')
+            raise PlatformNotReady
 
         if device is None or not device.available:
             if device is None:
