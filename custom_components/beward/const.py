@@ -4,10 +4,12 @@ from beward.const import ALARM_MOTION, ALARM_SENSOR
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "1.0.5"
+VERSION = "1.0.6"
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 DATA_BEWARD = DOMAIN
 ATTRIBUTION = "Data provided by Beward device."
+
+SUPPORT_URL = "https://github.com/Limych/ha-beward/issues/new/choose"
 
 CONF_EVENTS = 'events'
 CONF_RTSP_PORT = 'rtsp_port'
