@@ -8,6 +8,7 @@ https://github.com/Limych/ha-beward
 import asyncio
 import datetime
 import logging
+from asyncio import run_coroutine_threadsafe
 
 import aiohttp
 import async_timeout
@@ -17,7 +18,6 @@ from homeassistant.components.local_file.camera import LocalFile
 from homeassistant.const import CONF_NAME
 from homeassistant.helpers.aiohttp_client import async_get_clientsession, \
     async_aiohttp_proxy_stream
-from homeassistant.util.async_ import run_coroutine_threadsafe
 
 import beward
 from .const import CONF_FFMPEG_ARGUMENTS, EVENT_MOTION, EVENT_DING, \

@@ -31,7 +31,7 @@ from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
 from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
     CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS, DOMAIN, VERSION, ISSUE_URL, \
-    DATA_BEWARD, SUPPORT_URL
+    DATA_BEWARD, SUPPORT_LIB_URL
 from .helpers import service_signal
 from .sensor import SENSORS
 
@@ -60,11 +60,11 @@ CONFIG_SCHEMA = vol.Schema({
 
 
 def setup(hass, config):
-    """Set up the Beward component."""
+    """Set up component."""
     # Print startup message
-    _LOGGER.debug('Version %s', VERSION)
-    _LOGGER.info('If you have any issues with this you need to open an issue '
-                 'here: %s', ISSUE_URL)
+    _LOGGER.info('Version %s', VERSION)
+    _LOGGER.info('If you have ANY issues with this,'
+                 ' please report them here: %s', ISSUE_URL)
 
     hass.data.setdefault(DATA_BEWARD, {})
 
@@ -90,8 +90,8 @@ def setup(hass, config):
             hass.components.persistent_notification.create(
                 'Error: {}<br />'
                 'Please <a href="{}" target="_blank">contact the developers '
-                'of the component</a> to solve this problem.'
-                ''.format(exc, SUPPORT_URL),
+                'of the Beward library</a> to solve this problem.'
+                ''.format(exc, SUPPORT_LIB_URL),
                 title='Beward device Initialization Failure',
                 notification_id='beward_connection_error')
             raise PlatformNotReady
