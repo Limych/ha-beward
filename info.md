@@ -12,7 +12,7 @@
 
 - [Documentation](https://github.com/Limych/ha-beward)
 - [Configuration](https://github.com/Limych/ha-beward#configuration-variables)
-- [Report a Bug](https://github.com/Limych/ha-beward/issues/new?template=issue.md)
+- [Report a Bug](https://github.com/Limych/ha-beward/issues/new?template=bug_report.md)
 - [Suggest an idea](https://github.com/Limych/ha-beward/issues/new?template=feature_request.md)
 
 <p align="center">* * *</p>

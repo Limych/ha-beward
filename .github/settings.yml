@@ -16,7 +16,7 @@ labels:
   - name: "Wont Fix"
     color: "ffffff"
   - name: "Enhancement"
-    color: a2eeef
+    color: "a2eeef"
   - name: "Documentation"
     color: "008672"
   - name: "Stale"
