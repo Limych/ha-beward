@@ -17,8 +17,9 @@ from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.components.sensor import DOMAIN as SENSOR
+from homeassistant.components.switch import DOMAIN as SWITCH
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
-    CONF_NAME, CONF_PORT, CONF_BINARY_SENSORS, CONF_SENSORS
+    CONF_NAME, CONF_PORT, CONF_BINARY_SENSORS, CONF_SENSORS, CONF_SWITCHES
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import discovery
 from homeassistant.helpers.dispatcher import dispatcher_send
@@ -26,7 +27,7 @@ from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
 import beward
-from beward.const import ALARM_MOTION, ALARM_SENSOR
+from beward.const import ALARM_MOTION, ALARM_SENSOR, ALARM_SENSOR_OUT
 from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
 from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
@@ -34,6 +35,7 @@ from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
     DATA_BEWARD, SUPPORT_LIB_URL
 from .helpers import service_signal
 from .sensor import SENSORS
+from .switch import SWITCHES
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -52,6 +54,8 @@ DEVICE_SCHEMA = vol.Schema({
         vol.All(cv.ensure_list, [vol.In(BINARY_SENSORS)]),
     vol.Optional(CONF_SENSORS):
         vol.All(cv.ensure_list, [vol.In(SENSORS)]),
+    vol.Optional(CONF_SWITCHES):
+        vol.All(cv.ensure_list, [vol.In(SWITCHES)]),
 })
 
 CONFIG_SCHEMA = vol.Schema({
@@ -80,6 +84,7 @@ def setup(hass, config):
         cameras = device_config.get(CONF_CAMERAS)
         binary_sensors = device_config.get(CONF_BINARY_SENSORS)
         sensors = device_config.get(CONF_SENSORS)
+        switches = device_config.get(CONF_SWITCHES)
 
         try:
             device = beward.Beward.factory(
@@ -145,6 +150,12 @@ def setup(hass, config):
                 CONF_SENSORS: sensors,
             }, config)
 
+        if switches:
+            discovery.load_platform(hass, SWITCH, DOMAIN, {
+                CONF_NAME: name,
+                CONF_SWITCHES: switches,
+            }, config)
+
     if not hass.data[DATA_BEWARD]:
         return False
 
@@ -166,7 +177,8 @@ class BewardController:
 
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
-        self._device.listen_alarms(alarms=(ALARM_MOTION, ALARM_SENSOR))
+        self._device.listen_alarms(
+            alarms=(ALARM_MOTION, ALARM_SENSOR, ALARM_SENSOR_OUT))
 
     @property
     def unique_id(self):
@@ -237,12 +249,16 @@ class BewardController:
                         "Image replacement cleanup failed: %s", err)
 
     def _alarms_handler(self, device, timestamp: datetime, alarm: str,
-                        state: bool):
+                        state: bool, channel: int = 0):
         """Handle device's alarm events."""
+        if device != self._device:
+            return
+
         timestamp = dt_util.as_local(dt_util.as_utc(timestamp))
         _LOGGER.debug('Handle alarm "%s". State %s at %s' % (
             alarm, state, timestamp.isoformat()))
-        if alarm in (ALARM_MOTION, ALARM_SENSOR) and device == self._device:
+
+        if alarm in (ALARM_MOTION, ALARM_SENSOR):
             event = ALARMS_TO_EVENTS[alarm]
             self.event_state[event] = state
             if state:
@@ -252,3 +268,8 @@ class BewardController:
 
             dispatcher_send(
                 self.hass, service_signal('update', self.unique_id))
+
+        # TODO
+        # elif alarm == ALARM_SENSOR_OUT:
+        #     # 2019-10-31;23:17:21;SensorOutAlarm;1;0
+        #     # 2019-10-31;23:17:22;SensorOutAlarm;0;0

@@ -20,7 +20,7 @@ _LOGGER = logging.getLogger(__name__)
 
 SCAN_INTERVAL = timedelta(seconds=BINARY_SENSOR_SCAN_INTERVAL_SECS)
 
-# Sensor types: Name, category, class
+# Binary sensor types: Name, category, class
 BINARY_SENSORS = {
     EVENT_DING: (
         'Ding', [CAT_DOORBELL], None),

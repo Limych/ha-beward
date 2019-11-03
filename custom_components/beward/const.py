@@ -4,7 +4,7 @@ from beward.const import ALARM_MOTION, ALARM_SENSOR
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "1.0.8"
+VERSION = "1.1.0"
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 DATA_BEWARD = DOMAIN
 ATTRIBUTION = "Data provided by Beward device."
@@ -20,6 +20,10 @@ CONF_CAMERAS = 'cameras'
 EVENT_ONLINE = 'online'
 EVENT_MOTION = 'motion'
 EVENT_DING = 'ding'
+
+OUTPUT1 = 'output1'
+OUTPUT2 = 'output2'
+OUTPUT3 = 'output3'
 
 ALARMS_TO_EVENTS = {
     ALARM_MOTION: EVENT_MOTION,
