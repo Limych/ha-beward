@@ -8,12 +8,9 @@ import logging
 
 from homeassistant.components.switch import SwitchDevice
 from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME, CONF_SWITCHES
-from homeassistant.core import callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from .const import EVENT_ONLINE, ATTRIBUTION, \
+from .const import ATTRIBUTION, \
     ATTR_DEVICE_ID, DATA_BEWARD, OUTPUT1, OUTPUT2, OUTPUT3
-from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
 
