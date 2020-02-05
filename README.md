@@ -20,9 +20,10 @@ The `beward` implementation allows you to integrate your [Beward devices][beward
 ![Beward Logo](beward.png)
 
 There is currently support for the following device types within Home Assistant:
-- [Binary Sensor](#binary-sensor)
-- [Camera](#camera)
-- [Sensor](#sensor)
+- Binary Sensor
+- Camera
+- Sensor
+- Switch
 
 Currently only doorbells are supported by this integration.
 
@@ -54,9 +55,8 @@ custom_components/beward/sensor.py
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
 <p align="center"><br>
 <a href="https://www.patreon.com/join/limych?" target="_blank"><img src="http://khrolenok.ru/support_patreon.png" alt="Patreon" width="250" height="48"></a>
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url" target="_blank"><img src="http://khrolenok.ru/support_paypal.png" alt="PayPal" width="250" height="48"></a>
 <br>or&nbsp;support via Bitcoin or Etherium:<br>
-<a href="bitcoin:16yfCfz9dZ8y8yuSwBFVfiAa3CNYdMh7Ts" target="_blank"><img src="http://khrolenok.ru/support_bitcoin.png" alt="Bitcoin" width="150"><br>
+<a href="https://sochain.com/a/mjz640g" target="_blank"><img src="http://khrolenok.ru/support_bitcoin.png" alt="Bitcoin" width="150"><br>
 16yfCfz9dZ8y8yuSwBFVfiAa3CNYdMh7Ts</a>
 </p>
 
@@ -133,10 +133,10 @@ beward:
 
 > **online**:\
 > Return `on` when camera is available (i.e., responding to commands), `off` when not.
-> 
+>
 > **motion**:\
 > Return `on` when a motion is detected, `off` when not.
-> 
+>
 > **ding**:\
 > Return `on` when a doorbell button is pressed, `off` when not.
 
@@ -147,20 +147,35 @@ beward:
 
 > **last_activity**:\
 > Return the timestamp from the last event captured (ding/motion/on demand) by the Beward device camera.
-> 
+>
 > **last_motion**:\
 > Return the timestamp from the last motion event captured by the Beward device camera.
-> 
+>
 > **last_ding**:\
 > Return the timestamp from the last time the Beward doorbell button was pressed.
+
+**switches**:\
+  _(list) (Optional)_\
+  List of device's outputs to control:\
+  _Default value: None_
+
+> **output1**:\
+> The controller's first output.
+>
+> _Note:_ The only output if you use device with one output only (eg, DS06M doorbell with NC103(P) controller).
+>
+> **output2**:\
+> The controller's second output.
+>
+> **output3**:\
+> The controller's third output.
 
 <p align="center">* * *</p>
 I put a lot of work into making this repo and component available and updated to inspire and help others! I will be glad to receive thanks from you — it will give me new strength and add enthusiasm:
 <p align="center"><br>
 <a href="https://www.patreon.com/join/limych?" target="_blank"><img src="http://khrolenok.ru/support_patreon.png" alt="Patreon" width="250" height="48"></a>
-<a href="https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url" target="_blank"><img src="http://khrolenok.ru/support_paypal.png" alt="PayPal" width="250" height="48"></a>
 <br>or&nbsp;support via Bitcoin or Etherium:<br>
-<a href="bitcoin:16yfCfz9dZ8y8yuSwBFVfiAa3CNYdMh7Ts" target="_blank"><img src="http://khrolenok.ru/support_bitcoin.png" alt="Bitcoin" width="150"><br>
+<a href="https://sochain.com/a/mjz640g" target="_blank"><img src="http://khrolenok.ru/support_bitcoin.png" alt="Bitcoin" width="150"><br>
 16yfCfz9dZ8y8yuSwBFVfiAa3CNYdMh7Ts</a>
 </p>
 
@@ -180,7 +195,7 @@ beward:
     sensors:
       - last_ding
 
-  # Add second camera
+  # Add second camera with output control
   - host: HOST_ADDRESS_CAMERA_2
     username: YOUR_USERNAME
     password: YOUR_PASSWORD
@@ -188,6 +203,9 @@ beward:
     rtsp_port: 1554
     camera:
       - last_motion
+    switches:
+      - output1
+      - output3
 ```
 
 ## Usage tips
