@@ -133,10 +133,10 @@ beward:
 
 > **online**:\
 > Return `on` when camera is available (i.e., responding to commands), `off` when not.
-> 
+>
 > **motion**:\
 > Return `on` when a motion is detected, `off` when not.
-> 
+>
 > **ding**:\
 > Return `on` when a doorbell button is pressed, `off` when not.
 
@@ -147,10 +147,10 @@ beward:
 
 > **last_activity**:\
 > Return the timestamp from the last event captured (ding/motion/on demand) by the Beward device camera.
-> 
+>
 > **last_motion**:\
 > Return the timestamp from the last motion event captured by the Beward device camera.
-> 
+>
 > **last_ding**:\
 > Return the timestamp from the last time the Beward doorbell button was pressed.
 
@@ -243,6 +243,30 @@ custom_updater:
   component_urls:
     - https://raw.githubusercontent.com/Limych/ha-beward/master/tracker.json
 ```
+
+## License
+
+MIT License
+
+Copyright (c) 2019-2020 Andrey "Limych" Khrolenok
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 
 [beward]: https://www.beward.ru/
 [ffmpeg-doc]: https://www.home-assistant.io/components/ffmpeg/
