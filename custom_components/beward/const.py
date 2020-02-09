@@ -1,6 +1,6 @@
 """Constants for Beward component."""
 
-from beward.const import ALARM_MOTION, ALARM_SENSOR
+from beward.const import ALARM_MOTION, ALARM_SENSOR  # pylint: disable=W0406
 
 # Base component constants
 DOMAIN = "beward"

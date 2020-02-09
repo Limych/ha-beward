@@ -89,6 +89,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+/.idea/
 
 # Spyder project settings
 .spyderproject
@@ -109,3 +110,4 @@ venv.bak/
 /.idea/shelf
 
 /test*.py
+.idea/
