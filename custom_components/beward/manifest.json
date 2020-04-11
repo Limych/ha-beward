@@ -8,7 +8,7 @@
     "@Limych"
   ],
   "requirements": [
-    "beward~=1.1-dev"
+    "beward~=1.1-beta"
   ],
   "ssdp": {
     "st": [
