@@ -3,6 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/ha-beward.iml" filepath="$PROJECT_DIR$/.idea/ha-beward.iml" />
+      <module fileurl="file://$PROJECT_DIR$/../py-beward/.idea/py-beward.iml" filepath="$PROJECT_DIR$/../py-beward/.idea/py-beward.iml" />
     </modules>
   </component>
 </project>
