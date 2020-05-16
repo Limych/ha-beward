@@ -12,7 +12,6 @@ from asyncio import run_coroutine_threadsafe
 
 import aiohttp
 import async_timeout
-import beward
 from haffmpeg.camera import CameraMjpeg
 from homeassistant.components.camera import Camera, SUPPORT_STREAM
 from homeassistant.components.ffmpeg import DATA_FFMPEG
@@ -23,6 +22,7 @@ from homeassistant.helpers.aiohttp_client import (
     async_aiohttp_proxy_stream,
 )
 
+import beward
 from .const import (
     CONF_FFMPEG_ARGUMENTS,
     EVENT_MOTION,
@@ -58,7 +58,7 @@ CAMERAS = {
 }
 
 
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+def setup_platform(hass, config, add_entities, discovery_info=None):
     """Set up a cameras for a Beward device."""
     if discovery_info is None:
         return
@@ -84,7 +84,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
                     )
                 )
 
-    async_add_entities(cameras, True)
+    add_entities(cameras, True)
 
 
 class BewardCamera(Camera):

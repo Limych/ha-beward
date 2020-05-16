@@ -30,6 +30,7 @@ from homeassistant.const import (
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import discovery
 from homeassistant.helpers.dispatcher import dispatcher_send
+from homeassistant.helpers.event import track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
@@ -47,8 +48,8 @@ from .const import (
     VERSION,
     ISSUE_URL,
     SUPPORT_LIB_URL,
+    DEVICE_CHECK_INTERVAL,
 )
-from .helpers import service_signal
 from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
@@ -80,10 +81,14 @@ CONFIG_SCHEMA = vol.Schema(
 
 def setup(hass, config):
     """Set up component."""
+    conf = config.get(DOMAIN)
+    if conf is None:
+        return True
+
     # Print startup message
     _LOGGER.info("Version %s", VERSION)
     _LOGGER.info(
-        "If you have ANY issues with this," " please report them here: %s", ISSUE_URL
+        "If you have ANY issues with this, please report them here: %s", ISSUE_URL
     )
 
     hass.data.setdefault(DOMAIN, {})
@@ -100,6 +105,8 @@ def setup(hass, config):
         cameras = device_config.get(CONF_CAMERAS)
         binary_sensors = device_config.get(CONF_BINARY_SENSORS)
         sensors = device_config.get(CONF_SENSORS)
+
+        _LOGGER.debug("Connecting to device %s", device_ip)
 
         try:
             device = beward.Beward.factory(
@@ -125,12 +132,12 @@ def setup(hass, config):
         if device is None or not device.available:
             if device is None:
                 err_msg = (
-                    "Authorization rejected by Beward device" + " for %s@%s" % username,
+                    "Authorization rejected by Beward device for %s@%s" % username,
                     device_ip,
                 )
             else:
                 err_msg = (
-                    "Could not connect to Beward device" + " as %s@%s" % username,
+                    "Could not connect to Beward device as %s@%s" % username,
                     device_ip,
                 )
 
@@ -145,11 +152,11 @@ def setup(hass, config):
             raise PlatformNotReady
 
         if name is None:
-            name = "Beward %s" % device.system_info.get("DeviceID", "#%d" % (index + 1))
-        if name in list(hass.data[DOMAIN]):
-            _LOGGER.error(
-                "Duplicate name! " 'Beward device "%s" is already exists.', name
+            name = "Beward %s" % hass.async_add_job(
+                device.system_info.get, "DeviceID", "#%d" % (index + 1)
             )
+        if name in list(hass.data[DOMAIN]):
+            _LOGGER.error('Duplicate name! Beward device "%s" is already exists.', name)
             continue
 
         controller = BewardController(hass, device, name)
@@ -197,13 +204,12 @@ def setup(hass, config):
 class BewardController:
     """Beward device controller."""
 
-    def __init__(
-        self, hass, device: beward.BewardGeneric, name: str,
-    ):
+    def __init__(self, hass, device: beward.BewardGeneric, name: str):
         """Initialize configured device."""
         self.hass = hass
         self._device = device
         self._name = name
+        self._unique_id = self._device.system_info.get("DeviceID", self._device.host)
 
         self._available = True
         self.event_timestamp: Dict[str, datetime] = {}
@@ -213,10 +219,17 @@ class BewardController:
         self._device.add_alarms_handler(self._alarms_handler)
         self._device.listen_alarms(alarms=(ALARM_MOTION, ALARM_SENSOR))
 
+        track_time_interval(hass, self._update_available, DEVICE_CHECK_INTERVAL)
+
+    def service_signal(self, service):
+        """Encode service and identifier into signal."""
+        signal = "{}_{}_{}".format(DOMAIN, service, self.unique_id.replace(".", "_"))
+        return signal
+
     @property
     def unique_id(self):
         """Return a device unique ID."""
-        return self._device.system_info.get("DeviceID", self._device.host)
+        return self._unique_id
 
     @property
     def name(self):
@@ -231,6 +244,9 @@ class BewardController:
     @property
     def available(self) -> bool:
         """Return True if device is available."""
+        return self._available
+
+    def _update_available(self, _=None):
         available = self._device.available
         if self._available != available:
             self._available = available
@@ -239,7 +255,8 @@ class BewardController:
                 self._name,
                 "reconnected" if available else "unavailable",
             )
-        return self._available
+
+            dispatcher_send(self.hass, self.service_signal("update"))
 
     def history_image_path(self, event: str):
         """Return the path to saved image."""
@@ -298,4 +315,4 @@ class BewardController:
                 if isinstance(self._device, beward.BewardCamera):
                     self._cache_image(event, self._device.live_image)
 
-            dispatcher_send(self.hass, service_signal("update", self.unique_id))
+            dispatcher_send(self.hass, self.service_signal("update"))

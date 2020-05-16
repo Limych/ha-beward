@@ -24,7 +24,6 @@ from .const import (
     EVENT_DING,
     DOMAIN,
 )
-from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -191,9 +190,7 @@ class BewardSensor(Entity):
     async def async_added_to_hass(self):
         """Register callbacks."""
         self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass,
-            service_signal("update", self._controller.unique_id),
-            self._update_callback,
+            self.hass, self._controller.service_signal("update"), self._update_callback,
         )
 
     async def async_will_remove_from_hass(self):

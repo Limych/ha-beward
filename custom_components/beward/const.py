@@ -1,10 +1,11 @@
 """Constants for Beward component."""
+from datetime import timedelta
 
 from beward.const import ALARM_MOTION, ALARM_SENSOR
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = "1.1.1"
+VERSION = "1.1.2"
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
@@ -30,4 +31,4 @@ ATTR_DEVICE_ID = "device_id"
 CAT_DOORBELL = "doorbell"
 CAT_CAMERA = "camera"
 
-BINARY_SENSOR_SCAN_INTERVAL_SECS = 5
+DEVICE_CHECK_INTERVAL = timedelta(seconds=15)
