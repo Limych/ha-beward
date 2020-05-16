@@ -180,6 +180,7 @@ fabric.properties
 
 
 
+.devcontainer
 .vscode
 dev-config
 /custom_components/__init__.py

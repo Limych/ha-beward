@@ -1,7 +1,6 @@
 """Binary sensor platform for Beward devices."""
 
 import logging
-from datetime import timedelta
 
 from homeassistant.components.binary_sensor import (
     BinarySensorDevice,
@@ -14,7 +13,6 @@ from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 import beward
 from .const import (
-    BINARY_SENSOR_SCAN_INTERVAL_SECS,
     EVENT_DING,
     EVENT_MOTION,
     EVENT_ONLINE,
@@ -24,11 +22,8 @@ from .const import (
     ATTR_DEVICE_ID,
     DOMAIN,
 )
-from .helpers import service_signal
 
 _LOGGER = logging.getLogger(__name__)
-
-SCAN_INTERVAL = timedelta(seconds=BINARY_SENSOR_SCAN_INTERVAL_SECS)
 
 # Sensor types: Name, category, class
 BINARY_SENSORS = {
@@ -84,7 +79,7 @@ class BewardBinarySensor(BinarySensorDevice):
     @property
     def should_poll(self):
         """Return True if entity has to be polled for state."""
-        return self._sensor_type == EVENT_ONLINE
+        return False
 
     @property
     def available(self) -> bool:
@@ -138,11 +133,10 @@ class BewardBinarySensor(BinarySensorDevice):
     async def async_added_to_hass(self):
         """Register callbacks."""
         self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass,
-            service_signal("update", self._controller.unique_id),
-            self._update_callback,
+            self.hass, self._controller.service_signal("update"), self._update_callback,
         )
 
     async def async_will_remove_from_hass(self):
         """Disconnect from update signal."""
-        self._unsub_dispatcher()
+        if self._unsub_dispatcher is not None:
+            self._unsub_dispatcher()

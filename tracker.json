@@ -1,6 +1,6 @@
 {
     "beward": {
-        "version": "1.1.1",
+        "version": "1.1.2",
         "local_location": "/custom_components/beward/__init__.py",
         "remote_location": "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/__init__.py",
         "visit_repo": "https://github.com/Limych/ha-beward",
@@ -9,7 +9,6 @@
             "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/binary_sensor.py",
             "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/camera.py",
             "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/const.py",
-            "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/helpers.py",
             "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/manifest.json",
             "https://raw.githubusercontent.com/Limych/ha-beward/master/custom_components/beward/sensor.py"
         ]
