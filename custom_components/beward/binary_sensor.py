@@ -13,13 +13,13 @@ from homeassistant.const import CONF_NAME, CONF_BINARY_SENSORS
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from . import DOMAIN
 from .const import (
     EVENT_DING,
     EVENT_MOTION,
     EVENT_ONLINE,
     CAT_DOORBELL,
     CAT_CAMERA,
+    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
