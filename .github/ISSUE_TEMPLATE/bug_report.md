@@ -6,18 +6,15 @@ labels: Bug
 assignees: ''
 
 ---
-## Checklist
-- [ ] I updated the component to the latest version available
+<!--
+  Before you open a new issue, search through the existing issues to see if others have had the same problem.
 
+  Issues not containing the minimum requirements will be closed:
+  - Issues without a DESCRIPTION (using the header is not good enough) will be closed.
+  - Issues without DEBUG LOGGING will be closed.
+  - Issues without CONFIGURATION will be closed
 
-
-<!-- Before you open a new issue, search through the existing issues to see if others have had the same problem.
-
-Issues not containing the minimum requirements will be closed:
-
-- Issues without a description (using the header is not good enough) will be closed.
-- Issues without debug logging will be closed.
-- Issues without configuration will be closed
+  Please, DO NOT DELETE ANY TEXT from this template! (unless instructed).
 
 -->
 
@@ -25,7 +22,7 @@ Issues not containing the minimum requirements will be closed:
 <!-- If you are not using the newest version, download and try that before opening an issue
 If you are unsure about the version check the __init__.py file.
 -->
-Version: 
+Version:
 
 ## Describe the bug
 

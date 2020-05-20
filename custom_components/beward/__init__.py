@@ -11,9 +11,11 @@ import tempfile
 from datetime import datetime
 from typing import Dict
 
+import beward
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
+from beward.const import ALARM_MOTION, ALARM_SENSOR
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
@@ -26,6 +28,7 @@ from homeassistant.const import (
     CONF_PORT,
     CONF_BINARY_SENSORS,
     CONF_SENSORS,
+    ATTR_ATTRIBUTION,
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import discovery
@@ -34,8 +37,6 @@ from homeassistant.helpers.event import track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
-import beward
-from beward.const import ALARM_MOTION, ALARM_SENSOR
 from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
 from .const import (
@@ -44,15 +45,19 @@ from .const import (
     CONF_RTSP_PORT,
     CONF_CAMERAS,
     CONF_FFMPEG_ARGUMENTS,
-    DOMAIN,
-    VERSION,
-    ISSUE_URL,
     SUPPORT_LIB_URL,
     DEVICE_CHECK_INTERVAL,
+    ATTR_DEVICE_ID,
 )
 from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
+
+# Base component constants
+DOMAIN = "beward"
+VERSION = "1.1.3"
+ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
+ATTRIBUTION = "Data provided by Beward device."
 
 DEVICE_SCHEMA = vol.Schema(
     {
@@ -152,9 +157,7 @@ def setup(hass, config):
             raise PlatformNotReady
 
         if name is None:
-            name = "Beward %s" % hass.async_add_job(
-                device.system_info.get, "DeviceID", "#%d" % (index + 1)
-            )
+            name = "Beward %s" % device.system_info.get("DeviceID", "#%d" % (index + 1))
         if name in list(hass.data[DOMAIN]):
             _LOGGER.error('Duplicate name! Beward device "%s" is already exists.', name)
             continue
@@ -257,6 +260,15 @@ class BewardController:
             )
 
             dispatcher_send(self.hass, self.service_signal("update"))
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        attrs = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+            ATTR_DEVICE_ID: self.unique_id,
+        }
+        return attrs
 
     def history_image_path(self, event: str):
         """Return the path to saved image."""

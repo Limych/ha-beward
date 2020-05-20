@@ -3,9 +3,9 @@
 import logging
 from os import path
 
+import beward
 import homeassistant.util.dt as dt_util
 from homeassistant.const import (
-    ATTR_ATTRIBUTION,
     DEVICE_CLASS_TIMESTAMP,
     CONF_NAME,
     CONF_SENSORS,
@@ -14,15 +14,12 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-import beward
+from . import DOMAIN
 from .const import (
     CAT_DOORBELL,
     CAT_CAMERA,
-    ATTRIBUTION,
-    ATTR_DEVICE_ID,
     EVENT_MOTION,
     EVENT_DING,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -127,11 +124,7 @@ class BewardSensor(Entity):
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-        attrs = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
-            ATTR_DEVICE_ID: self._controller.unique_id,
-        }
-        return attrs
+        return self._controller.device_state_attributes
 
     @property
     def icon(self):

@@ -9,9 +9,11 @@ import asyncio
 import datetime
 import logging
 from asyncio import run_coroutine_threadsafe
+from typing import Dict
 
 import aiohttp
 import async_timeout
+import beward
 from haffmpeg.camera import CameraMjpeg
 from homeassistant.components.camera import Camera, SUPPORT_STREAM
 from homeassistant.components.ffmpeg import DATA_FFMPEG
@@ -22,7 +24,7 @@ from homeassistant.helpers.aiohttp_client import (
     async_aiohttp_proxy_stream,
 )
 
-import beward
+from . import DOMAIN
 from .const import (
     CONF_FFMPEG_ARGUMENTS,
     EVENT_MOTION,
@@ -30,7 +32,6 @@ from .const import (
     CAT_DOORBELL,
     CAT_CAMERA,
     CONF_CAMERAS,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -47,14 +48,14 @@ CAMERA_NAME_LAST_MOTION = "{} Last Motion"
 CAMERA_NAME_LAST_DING = "{} Last Ding"
 
 # Camera types are defined like: name template, device class, device event
-CAMERAS = {
-    CAMERA_LIVE: (CAMERA_NAME_LIVE, [CAT_DOORBELL, CAT_CAMERA], None),
-    CAMERA_LAST_MOTION: (
+CAMERAS: Dict[str, list] = {
+    CAMERA_LIVE: [CAMERA_NAME_LIVE, [CAT_DOORBELL, CAT_CAMERA], None],
+    CAMERA_LAST_MOTION: [
         CAMERA_NAME_LAST_MOTION,
         [CAT_DOORBELL, CAT_CAMERA],
         EVENT_MOTION,
-    ),
-    CAMERA_LAST_DING: (CAMERA_NAME_LAST_DING, [CAT_DOORBELL], EVENT_DING),
+    ],
+    CAMERA_LAST_DING: [CAMERA_NAME_LAST_DING, [CAT_DOORBELL], EVENT_DING],
 }
 
 
@@ -126,6 +127,11 @@ class BewardCamera(Camera):
     def available(self) -> bool:
         """Return True if entity is available."""
         return self._controller.available
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        return self._controller.device_state_attributes
 
     def camera_image(self):
         """Return camera image."""
