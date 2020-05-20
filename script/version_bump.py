@@ -154,11 +154,12 @@ def bump_version(version, bump_type):
 
 def write_version(component_path, version):
     """Update custom component constant file with new version."""
+    component_path += "/const.py"
     with open(component_path) as fil:
         content = fil.read()
 
-    content = re.sub("VERSION = .*\n", f"VERSION = '{version}'\n", content)
-    content = re.sub("__version__ = .*\n", f"__version__ = '{version}'\n", content)
+    content = re.sub("VERSION = .*\n", f'VERSION = "{version}"\n', content)
+    content = re.sub("__version__ = .*\n", f'__version__ = "{version}"\n', content)
 
     with open(component_path, "wt") as fil:
         fil.write(content)
@@ -193,9 +194,9 @@ def main():
                 component = dname
 
     assert component, "Component not found!"
-    component_path = f"{ROOT}/custom_components/{component}/__init__.py"
+    component_path = f"{ROOT}/custom_components/{component}"
 
-    current = Version(get_component_version(component_path, component))
+    current = Version(get_component_version(f"{component_path}/__init__.py", component))
     bumped = bump_version(current, arguments.type)
     assert bumped > current, "BUG! New version is not newer than old version"
 
