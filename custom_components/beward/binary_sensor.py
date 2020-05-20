@@ -1,35 +1,34 @@
 """Binary sensor platform for Beward devices."""
 
 import logging
+from typing import Dict
 
+import beward
 from homeassistant.components.binary_sensor import (
     BinarySensorDevice,
     DEVICE_CLASS_MOTION,
     DEVICE_CLASS_CONNECTIVITY,
 )
-from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME, CONF_BINARY_SENSORS
+from homeassistant.const import CONF_NAME, CONF_BINARY_SENSORS
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-import beward
+from . import DOMAIN
 from .const import (
     EVENT_DING,
     EVENT_MOTION,
     EVENT_ONLINE,
     CAT_DOORBELL,
     CAT_CAMERA,
-    ATTRIBUTION,
-    ATTR_DEVICE_ID,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
 
 # Sensor types: Name, category, class
-BINARY_SENSORS = {
-    EVENT_DING: ("Ding", [CAT_DOORBELL], None),
-    EVENT_MOTION: ("Motion", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION),
-    EVENT_ONLINE: ("Online", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_CONNECTIVITY),
+BINARY_SENSORS: Dict[str, list] = {
+    EVENT_DING: ["Ding", [CAT_DOORBELL], None],
+    EVENT_MOTION: ["Motion", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION],
+    EVENT_ONLINE: ["Online", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_CONNECTIVITY],
 }
 
 
@@ -104,11 +103,7 @@ class BewardBinarySensor(BinarySensorDevice):
     @property
     def device_state_attributes(self):
         """Return the state attributes."""
-        attrs = {
-            ATTR_ATTRIBUTION: ATTRIBUTION,
-            ATTR_DEVICE_ID: self._controller.unique_id,
-        }
-        return attrs
+        return self._controller.device_state_attributes
 
     async def async_update(self):
         """Get the latest data and updates the state."""
