@@ -130,7 +130,7 @@ def setup(hass, config):
                 title="Beward device Initialization Failure",
                 notification_id="beward_connection_error",
             )
-            raise PlatformNotReady
+            raise PlatformNotReady from exc
 
         if device is None or not device.available:
             if device is None:
