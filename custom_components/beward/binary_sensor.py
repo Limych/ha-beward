@@ -4,8 +4,14 @@ import logging
 from typing import Dict
 
 import beward
+
+try:
+    from homeassistant.components.binary_sensor import BinarySensorEntity
+except ImportError:
+    from homeassistant.components.binary_sensor import (
+        BinarySensorDevice as BinarySensorEntity,
+    )
 from homeassistant.components.binary_sensor import (
-    BinarySensorDevice,
     DEVICE_CLASS_MOTION,
     DEVICE_CLASS_CONNECTIVITY,
 )
@@ -13,13 +19,13 @@ from homeassistant.const import CONF_NAME, CONF_BINARY_SENSORS
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
+from . import DOMAIN
 from .const import (
     EVENT_DING,
     EVENT_MOTION,
     EVENT_ONLINE,
     CAT_DOORBELL,
     CAT_CAMERA,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -53,7 +59,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
     async_add_entities(sensors, True)
 
 
-class BewardBinarySensor(BinarySensorDevice):
+class BewardBinarySensor(BinarySensorEntity):
     """A binary sensor implementation for Beward device."""
 
     def __init__(self, controller, sensor_type: str):

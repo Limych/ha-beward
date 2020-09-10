@@ -24,6 +24,7 @@ from homeassistant.helpers.aiohttp_client import (
     async_aiohttp_proxy_stream,
 )
 
+from . import DOMAIN
 from .const import (
     CONF_FFMPEG_ARGUMENTS,
     EVENT_MOTION,
@@ -31,7 +32,6 @@ from .const import (
     CAT_DOORBELL,
     CAT_CAMERA,
     CONF_CAMERAS,
-    DOMAIN,
 )
 
 _LOGGER = logging.getLogger(__name__)

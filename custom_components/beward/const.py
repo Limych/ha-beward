@@ -3,12 +3,6 @@ from datetime import timedelta
 
 from beward.const import ALARM_MOTION, ALARM_SENSOR
 
-# Base component constants
-DOMAIN = "beward"
-VERSION = "1.1.4"
-ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
-ATTRIBUTION = "Data provided by Beward device."
-
 SUPPORT_LIB_URL = "https://github.com/Limych/py-beward/issues/new/choose"
 
 CONF_EVENTS = "events"
