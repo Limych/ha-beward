@@ -9,32 +9,29 @@ import logging
 from homeassistant.components.switch import SwitchDevice
 from homeassistant.const import ATTR_ATTRIBUTION, CONF_NAME, CONF_SWITCHES
 
-from .const import ATTRIBUTION, \
-    ATTR_DEVICE_ID, DATA_BEWARD, OUTPUT1, OUTPUT2, OUTPUT3
+from .const import ATTRIBUTION, ATTR_DEVICE_ID, DOMAIN, OUTPUT1, OUTPUT2, OUTPUT3
 
 _LOGGER = logging.getLogger(__name__)
 
 # Switch types: Name
 SWITCHES = {
-    OUTPUT1: ['Output 1'],
-    OUTPUT2: ['Output 2'],
-    OUTPUT3: ['Output 3'],
+    OUTPUT1: ["Output 1"],
+    OUTPUT2: ["Output 2"],
+    OUTPUT3: ["Output 3"],
 }
 
 
-async def async_setup_platform(hass, config, async_add_entities,
-                               discovery_info=None):
+async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
     """Set up a switches for a Beward device."""
     if discovery_info is None:
         return
 
     name = discovery_info[CONF_NAME]
-    device = hass.data[DATA_BEWARD][name]
+    device = hass.data[DOMAIN][name]
 
     switches = []
     for switch_id in discovery_info[CONF_SWITCHES]:
-        switches.append(
-            BewardSwitch(device, switch_id))
+        switches.append(BewardSwitch(device, switch_id))
 
     async_add_entities(switches, True)
 
@@ -48,9 +45,8 @@ class BewardSwitch(SwitchDevice):
 
         self._device = device
         self._switch_id = switch_id
-        self._name = "{0} {1}".format(
-            self._device.name, SWITCHES.get(switch_id)[0])
-        self._unique_id = '{}-{}'.format(self._device.unique_id, switch_id)
+        self._name = "{} {}".format(self._device.name, SWITCHES[switch_id][0])
+        self._unique_id = f"{self._device.unique_id}-{switch_id}"
         self._state = None
 
     @property

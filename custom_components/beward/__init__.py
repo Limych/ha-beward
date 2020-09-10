@@ -9,68 +9,96 @@ import logging
 import os
 import tempfile
 from datetime import datetime
+from typing import Dict
 
+import beward
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
+from beward.const import ALARM_MOTION, ALARM_SENSOR, ALARM_SENSOR_OUT
 from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.components.switch import DOMAIN as SWITCH
-from homeassistant.const import CONF_PASSWORD, CONF_USERNAME, CONF_HOST, \
-    CONF_NAME, CONF_PORT, CONF_BINARY_SENSORS, CONF_SENSORS, CONF_SWITCHES
+from homeassistant.const import (
+    CONF_PASSWORD,
+    CONF_USERNAME,
+    CONF_HOST,
+    CONF_NAME,
+    CONF_PORT,
+    CONF_BINARY_SENSORS,
+    CONF_SENSORS,
+    CONF_SWITCHES,
+    ATTR_ATTRIBUTION,
+)
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import discovery
 from homeassistant.helpers.dispatcher import dispatcher_send
+from homeassistant.helpers.event import track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
-import beward
-from beward.const import ALARM_MOTION, ALARM_SENSOR, ALARM_SENSOR_OUT
 from .binary_sensor import BINARY_SENSORS
 from .camera import CAMERAS
-from .const import CONF_STREAM, ALARMS_TO_EVENTS, CONF_RTSP_PORT, \
-    CONF_CAMERAS, CONF_FFMPEG_ARGUMENTS, DOMAIN, VERSION, ISSUE_URL, \
-    DATA_BEWARD, SUPPORT_LIB_URL
-from .helpers import service_signal
+from .const import (
+    CONF_STREAM,
+    ALARMS_TO_EVENTS,
+    CONF_RTSP_PORT,
+    CONF_CAMERAS,
+    CONF_FFMPEG_ARGUMENTS,
+    SUPPORT_LIB_URL,
+    DEVICE_CHECK_INTERVAL,
+    ATTR_DEVICE_ID,
+    DOMAIN,
+    VERSION,
+    ISSUE_URL,
+    ATTRIBUTION,
+)
 from .sensor import SENSORS
 from .switch import SWITCHES
 
 _LOGGER = logging.getLogger(__name__)
 
-DEVICE_SCHEMA = vol.Schema({
-    vol.Required(CONF_HOST): cv.string,
-    vol.Required(CONF_USERNAME): cv.string,
-    vol.Required(CONF_PASSWORD): cv.string,
-    vol.Optional(CONF_NAME): cv.string,
-    vol.Optional(CONF_PORT, default=80): int,
-    vol.Optional(CONF_RTSP_PORT): int,
-    vol.Optional(CONF_STREAM, default=0): int,
-    vol.Optional(CONF_FFMPEG_ARGUMENTS, default=DEFAULT_ARGUMENTS): cv.string,
-    vol.Optional(CONF_CAMERAS, default=list(CAMERAS)):
-        vol.All(cv.ensure_list, [vol.In(CAMERAS)]),
-    vol.Optional(CONF_BINARY_SENSORS):
-        vol.All(cv.ensure_list, [vol.In(BINARY_SENSORS)]),
-    vol.Optional(CONF_SENSORS):
-        vol.All(cv.ensure_list, [vol.In(SENSORS)]),
-    vol.Optional(CONF_SWITCHES):
-        vol.All(cv.ensure_list, [vol.In(SWITCHES)]),
-})
+DEVICE_SCHEMA = vol.Schema(
+    {
+        vol.Required(CONF_HOST): cv.string,
+        vol.Required(CONF_USERNAME): cv.string,
+        vol.Required(CONF_PASSWORD): cv.string,
+        vol.Optional(CONF_NAME): cv.string,
+        vol.Optional(CONF_PORT, default=80): int,
+        vol.Optional(CONF_RTSP_PORT): int,
+        vol.Optional(CONF_STREAM, default=0): int,
+        vol.Optional(CONF_FFMPEG_ARGUMENTS, default=DEFAULT_ARGUMENTS): cv.string,
+        vol.Optional(CONF_CAMERAS, default=list(CAMERAS)): vol.All(
+            cv.ensure_list, [vol.In(CAMERAS)]
+        ),
+        vol.Optional(CONF_BINARY_SENSORS): vol.All(
+            cv.ensure_list, [vol.In(BINARY_SENSORS)]
+        ),
+        vol.Optional(CONF_SENSORS): vol.All(cv.ensure_list, [vol.In(SENSORS)]),
+        vol.Optional(CONF_SWITCHES): vol.All(cv.ensure_list, [vol.In(SWITCHES)]),
+    }
+)
 
-CONFIG_SCHEMA = vol.Schema({
-    DOMAIN: vol.All(cv.ensure_list, [DEVICE_SCHEMA])
-}, extra=vol.ALLOW_EXTRA)
+CONFIG_SCHEMA = vol.Schema(
+    {DOMAIN: vol.All(cv.ensure_list, [DEVICE_SCHEMA])}, extra=vol.ALLOW_EXTRA
+)
 
 
 def setup(hass, config):
     """Set up component."""
-    # Print startup message
-    _LOGGER.info('Version %s', VERSION)
-    _LOGGER.info('If you have ANY issues with this,'
-                 ' please report them here: %s', ISSUE_URL)
+    conf = config.get(DOMAIN)
+    if conf is None:
+        return True
 
-    hass.data.setdefault(DATA_BEWARD, {})
+    # Print startup message
+    _LOGGER.info("Version %s", VERSION)
+    _LOGGER.info(
+        "If you have ANY issues with this, please report them here: %s", ISSUE_URL
+    )
+
+    hass.data.setdefault(DOMAIN, {})
 
     for index, device_config in enumerate(config[DOMAIN]):
         device_ip = device_config.get(CONF_HOST)
@@ -86,77 +114,103 @@ def setup(hass, config):
         sensors = device_config.get(CONF_SENSORS)
         switches = device_config.get(CONF_SWITCHES)
 
+        _LOGGER.debug("Connecting to device %s", device_ip)
+
         try:
             device = beward.Beward.factory(
-                device_ip, username, password, port=port, rtsp_port=rtsp_port,
-                stream=stream)
+                device_ip,
+                username,
+                password,
+                port=port,
+                rtsp_port=rtsp_port,
+                stream=stream,
+            )
         except ValueError as exc:
             _LOGGER.error(exc)
             hass.components.persistent_notification.create(
-                'Error: {}<br />'
+                "Error: {}<br />"
                 'Please <a href="{}" target="_blank">contact the developers '
-                'of the Beward library</a> to solve this problem.'
-                ''.format(exc, SUPPORT_LIB_URL),
-                title='Beward device Initialization Failure',
-                notification_id='beward_connection_error')
-            raise PlatformNotReady
+                "of the Beward library</a> to solve this problem."
+                "".format(exc, SUPPORT_LIB_URL),
+                title="Beward device Initialization Failure",
+                notification_id="beward_connection_error",
+            )
+            raise PlatformNotReady from exc
 
         if device is None or not device.available:
             if device is None:
-                err_msg = "Authorization rejected by Beward device" + \
-                          " for %s@%s" % username, device_ip
+                err_msg = (
+                    "Authorization rejected by Beward device for %s@%s" % username,
+                    device_ip,
+                )
             else:
-                err_msg = "Could not connect to Beward device" + \
-                          " as %s@%s" % username, device_ip
+                err_msg = (
+                    "Could not connect to Beward device as %s@%s" % username,
+                    device_ip,
+                )
 
             _LOGGER.error(err_msg)
             hass.components.persistent_notification.create(
-                'Error: {}<br />'
-                'You will need to restart Home Assistant after fixing.'
-                ''.format(err_msg),
-                title='Beward device Configuration Failure',
-                notification_id='beward_connection_error')
+                "Error: {}<br />"
+                "You will need to restart Home Assistant after fixing."
+                "".format(err_msg),
+                title="Beward device Configuration Failure",
+                notification_id="beward_connection_error",
+            )
             raise PlatformNotReady
 
         if name is None:
-            name = 'Beward %s' % device.system_info.get('DeviceID',
-                                                        '#%d' % (index + 1))
-        if name in list(hass.data[DATA_BEWARD]):
-            _LOGGER.error('Duplicate name! '
-                          'Beward device "%s" is already exists.', name)
+            name = "Beward %s" % device.system_info.get("DeviceID", "#%d" % (index + 1))
+        if name in list(hass.data[DOMAIN]):
+            _LOGGER.error('Duplicate name! Beward device "%s" is already exists.', name)
             continue
 
         controller = BewardController(hass, device, name)
-        hass.data[DATA_BEWARD][name] = controller
-        _LOGGER.info('Connected to Beward device "%s" as %s@%s',
-                     controller.name, username, device_ip)
+        hass.data[DOMAIN][name] = controller
+        _LOGGER.info(
+            'Connected to Beward device "%s" as %s@%s',
+            controller.name,
+            username,
+            device_ip,
+        )
 
         if cameras:
-            discovery.load_platform(hass, CAMERA, DOMAIN, {
-                CONF_NAME: name,
-                CONF_CAMERAS: cameras,
-                CONF_FFMPEG_ARGUMENTS: ffmpeg_arguments,
-            }, config)
+            discovery.load_platform(
+                hass,
+                CAMERA,
+                DOMAIN,
+                {
+                    CONF_NAME: name,
+                    CONF_CAMERAS: cameras,
+                    CONF_FFMPEG_ARGUMENTS: ffmpeg_arguments,
+                },
+                config,
+            )
 
         if binary_sensors:
-            discovery.load_platform(hass, BINARY_SENSOR, DOMAIN, {
-                CONF_NAME: name,
-                CONF_BINARY_SENSORS: binary_sensors,
-            }, config)
+            discovery.load_platform(
+                hass,
+                BINARY_SENSOR,
+                DOMAIN,
+                {CONF_NAME: name, CONF_BINARY_SENSORS: binary_sensors},
+                config,
+            )
 
         if sensors:
-            discovery.load_platform(hass, SENSOR, DOMAIN, {
-                CONF_NAME: name,
-                CONF_SENSORS: sensors,
-            }, config)
+            discovery.load_platform(
+                hass, SENSOR, DOMAIN, {CONF_NAME: name, CONF_SENSORS: sensors}, config
+            )
 
         if switches:
-            discovery.load_platform(hass, SWITCH, DOMAIN, {
-                CONF_NAME: name,
-                CONF_SWITCHES: switches,
-            }, config)
+            discovery.load_platform(
+                hass,
+                SWITCH,
+                DOMAIN,
+                {CONF_NAME: name, CONF_SWITCHES: switches},
+                config,
+            )
 
-    if not hass.data[DATA_BEWARD]:
+    if not hass.data[DOMAIN]:
         return False
 
     return True
@@ -170,20 +224,29 @@ class BewardController:
         self.hass = hass
         self._device = device
         self._name = name
+        self._unique_id = self._device.system_info.get("DeviceID", self._device.host)
 
         self._available = True
-        self.event_timestamp = {}
-        self.event_state = {}
+        self.event_timestamp: Dict[str, datetime] = {}
+        self.event_state: Dict[str, bool] = {}
 
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
         self._device.listen_alarms(
-            alarms=(ALARM_MOTION, ALARM_SENSOR, ALARM_SENSOR_OUT))
+            alarms=(ALARM_MOTION, ALARM_SENSOR, ALARM_SENSOR_OUT)
+        )
+
+        track_time_interval(hass, self._update_available, DEVICE_CHECK_INTERVAL)
+
+    def service_signal(self, service):
+        """Encode service and identifier into signal."""
+        signal = "{}_{}_{}".format(DOMAIN, service, self.unique_id.replace(".", "_"))
+        return signal
 
     @property
     def unique_id(self):
         """Return a device unique ID."""
-        return self._device.system_info.get('DeviceID', self._device.host)
+        return self._unique_id
 
     @property
     def name(self):
@@ -198,16 +261,32 @@ class BewardController:
     @property
     def available(self) -> bool:
         """Return True if device is available."""
+        return self._available
+
+    def _update_available(self, _=None):
         available = self._device.available
         if self._available != available:
             self._available = available
-            _LOGGER.warning('Device "%s" is %s', self._name,
-                            'reconnected' if available else 'unavailable')
-        return self._available
+            _LOGGER.warning(
+                'Device "%s" is %s',
+                self._name,
+                "reconnected" if available else "unavailable",
+            )
+
+            dispatcher_send(self.hass, self.service_signal("update"))
+
+    @property
+    def device_state_attributes(self):
+        """Return the state attributes."""
+        attrs = {
+            ATTR_ATTRIBUTION: ATTRIBUTION,
+            ATTR_DEVICE_ID: self.unique_id,
+        }
+        return attrs
 
     def history_image_path(self, event: str):
         """Return the path to saved image."""
-        file_name = slugify('%s last %s' % (self.name, event)) + '.jpg'
+        file_name = slugify(f"{self.name} last {event}") + ".jpg"
         return self.hass.config.path(STORAGE_DIR, DOMAIN, file_name)
 
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
@@ -222,20 +301,21 @@ class BewardController:
         image_path = self.history_image_path(event)
         tmp_filename = ""
         image_dir = os.path.split(image_path)[0]
-        _LOGGER.debug('Save camera photo to %s' % image_path)
+        _LOGGER.debug("Save camera photo to %s", image_path)
         if not os.path.exists(image_dir):
             os.makedirs(image_dir, mode=0o755)
         try:
             # Modern versions of Python tempfile create
             # this file with mode 0o600
             with tempfile.NamedTemporaryFile(
-                    mode="wb", dir=image_dir, delete=False) as fdesc:
+                mode="wb", dir=image_dir, delete=False
+            ) as fdesc:
                 fdesc.write(image)
                 tmp_filename = fdesc.name
             os.chmod(tmp_filename, 0o644)
             os.replace(tmp_filename, image_path)
         except OSError as error:
-            _LOGGER.exception('Saving image file failed: %s', image_path)
+            _LOGGER.exception("Saving image file failed: %s", image_path)
             raise error
         finally:
             if os.path.exists(tmp_filename):
@@ -245,20 +325,20 @@ class BewardController:
                     # If we are cleaning up then something else
                     # went wrong, so we should suppress likely
                     # follow-on errors in the cleanup
-                    _LOGGER.error(
-                        "Image replacement cleanup failed: %s", err)
+                    _LOGGER.error("Image replacement cleanup failed: %s", err)
 
-    def _alarms_handler(self, device, timestamp: datetime, alarm: str,
-                        state: bool, channel: int = 0):
+    def _alarms_handler(
+        self, device, timestamp: datetime, alarm: str, state: bool, channel: int = 0
+    ):
         """Handle device's alarm events."""
         if device != self._device:
             return
 
         timestamp = dt_util.as_local(dt_util.as_utc(timestamp))
-        _LOGGER.debug('Handle alarm "%s". State %s at %s' % (
-            alarm, state, timestamp.isoformat()))
-
-        if alarm in (ALARM_MOTION, ALARM_SENSOR):
+        _LOGGER.debug(
+            'Handle alarm "%s". State %s at %s', alarm, state, timestamp.isoformat()
+        )
+        if alarm in (ALARM_MOTION, ALARM_SENSOR) and device == self._device:
             event = ALARMS_TO_EVENTS[alarm]
             self.event_state[event] = state
             if state:
@@ -266,9 +346,9 @@ class BewardController:
                 if isinstance(self._device, beward.BewardCamera):
                     self._cache_image(event, self._device.live_image)
 
-            dispatcher_send(
-                self.hass, service_signal('update', self.unique_id))
+            dispatcher_send(self.hass, self.service_signal("update"))
 
+        # pylint: disable=fixme
         # TODO
         # elif alarm == ALARM_SENSOR_OUT:
         #     # 2019-10-31;23:17:21;SensorOutAlarm;1;0

@@ -104,10 +104,10 @@ venv.bak/
 # mypy
 .mypy_cache/
 
-# Idea workspace
-/.idea/workspace.xml
-/.idea/libraries
-/.idea/shelf
 
+
+.devcontainer
+.vscode
+dev-config
+/custom_components/__init__.py
 /test*.py
-.idea/

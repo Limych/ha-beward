@@ -31,6 +31,8 @@ I also suggest you [visit the support topic][forum-support] on the community for
 
 ## Installation
 
+Manual installation:
+
 1. Using the tool of choice open the directory (folder) for your HA configuration (where you find `configuration.yaml`).
 2. If you do not have a `custom_components` directory (folder) there, you need to create it.
 3. In the `custom_components` directory (folder) create a new folder called `beward`.
@@ -249,18 +251,7 @@ If you want to contribute to this please read the [Contribution guidelines](CONT
 
 ## Track updates
 
-You can automatically track new versions of this component and update it by [custom-updater](https://github.com/custom-components/custom_updater) (deprecated) or [HACS][hacs].
-
-For custom-updater to initiate tracking add this lines to you `configuration.yaml` file:
-
-```yaml
-# Example configuration.yaml entry
-custom_updater:
-  track:
-    - components
-  component_urls:
-    - https://raw.githubusercontent.com/Limych/ha-beward/master/tracker.json
-```
+You can automatically track new versions of this component and update it by [HACS][hacs].
 
 ## License
 

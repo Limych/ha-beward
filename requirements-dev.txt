@@ -1,2 +1,9 @@
-pre-commit
-pylint
+-r requirements.txt
+black==19.10b0
+flake8==3.8.1
+mypy==0.770
+pre-commit==2.4.0
+pylint==2.5.2
+pylint-strict-informational==0.1
+pyupgrade==2.4.3
+yamllint==1.23.0
