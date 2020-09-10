@@ -14,7 +14,8 @@ from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from .const import CAT_DOORBELL, CAT_CAMERA, EVENT_MOTION, EVENT_DING, DOMAIN
+from . import DOMAIN
+from .const import CAT_DOORBELL, CAT_CAMERA, EVENT_MOTION, EVENT_DING
 
 _LOGGER = logging.getLogger(__name__)
 

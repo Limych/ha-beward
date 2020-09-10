@@ -48,14 +48,16 @@ from .const import (
     SUPPORT_LIB_URL,
     DEVICE_CHECK_INTERVAL,
     ATTR_DEVICE_ID,
-    DOMAIN,
-    VERSION,
-    ISSUE_URL,
-    ATTRIBUTION,
 )
 from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
+
+# Base component constants
+DOMAIN = "beward"
+VERSION = "1.1.4"
+ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
+ATTRIBUTION = "Data provided by Beward device."
 
 DEVICE_SCHEMA = vol.Schema(
     {
