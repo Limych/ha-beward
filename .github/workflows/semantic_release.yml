@@ -28,7 +28,7 @@ jobs:
           git config --global user.email "semantic-release@GitHub"
       - name: Publish with semantic-release
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           DEBUG='*' semantic-release publish
       # Pack the ha-beward dir as a zip and upload to the release
@@ -44,9 +44,9 @@ jobs:
         run: |
           sleep 5
       - name: Upload zip to release
-        uses: svenstaro/upload-release-action@v1-release
+        uses: svenstaro/upload-release-action@v2
         with:
-          repo_token: ${{ secrets.GH_TOKEN }}
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: /home/runner/work/ha-beward/ha-beward/custom_components/beward/beward.zip
           asset_name: beward.zip
           tag: ${{ env.release_version }}
