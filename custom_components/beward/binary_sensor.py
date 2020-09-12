@@ -1,7 +1,7 @@
 """Binary sensor platform for Beward devices."""
 
 import logging
-from typing import Dict
+from typing import Dict, Optional, Any
 
 import beward
 
@@ -11,34 +11,19 @@ except ImportError:
     from homeassistant.components.binary_sensor import (
         BinarySensorDevice as BinarySensorEntity,
     )
-from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_MOTION,
-    DEVICE_CLASS_CONNECTIVITY,
-)
 from homeassistant.const import CONF_NAME, CONF_BINARY_SENSORS
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
 from . import DOMAIN
-from .const import (
-    EVENT_DING,
-    EVENT_MOTION,
-    EVENT_ONLINE,
-    CAT_DOORBELL,
-    CAT_CAMERA,
-)
+from .const import EVENT_ONLINE, CAT_DOORBELL, CAT_CAMERA, BINARY_SENSORS
 
 _LOGGER = logging.getLogger(__name__)
 
-# Sensor types: Name, category, class
-BINARY_SENSORS: Dict[str, list] = {
-    EVENT_DING: ["Ding", [CAT_DOORBELL], None],
-    EVENT_MOTION: ["Motion", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION],
-    EVENT_ONLINE: ["Online", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_CONNECTIVITY],
-}
 
-
-async def async_setup_platform(hass, config, async_add_entities, discovery_info=None):
+async def async_setup_platform(
+    hass, config, async_add_entities, discovery_info=None
+) -> None:
     """Set up a binary sensors for a Beward device."""
     if discovery_info is None:
         return
@@ -53,7 +38,7 @@ async def async_setup_platform(hass, config, async_add_entities, discovery_info=
 
     sensors = []
     for sensor_type in discovery_info[CONF_BINARY_SENSORS]:
-        if category in BINARY_SENSORS.get(sensor_type)[1]:
+        if category in BINARY_SENSORS[sensor_type][1]:
             sensors.append(BewardBinarySensor(controller, sensor_type))
 
     async_add_entities(sensors, True)
@@ -77,12 +62,7 @@ class BewardBinarySensor(BinarySensorEntity):
         self._unique_id = f"{self._controller.unique_id}-{self._sensor_type}"
 
     @property
-    def name(self):
-        """Return the name of the sensor."""
-        return self._name
-
-    @property
-    def should_poll(self):
+    def should_poll(self) -> bool:
         """Return True if entity has to be polled for state."""
         return False
 
@@ -92,31 +72,31 @@ class BewardBinarySensor(BinarySensorEntity):
         return self._sensor_type == EVENT_ONLINE or self._controller.available
 
     @property
-    def is_on(self):
+    def is_on(self) -> Optional[bool]:
         """Return True if the binary sensor is on."""
         return self._state
 
     @property
-    def device_class(self):
+    def device_class(self) -> Optional[str]:
         """Return the class of the binary sensor."""
         return self._device_class
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> Optional[str]:
         """Return a unique ID."""
         return self._unique_id
 
     @property
-    def device_state_attributes(self):
+    def device_state_attributes(self) -> Optional[Dict[str, Any]]:
         """Return the state attributes."""
         return self._controller.device_state_attributes
 
-    async def async_update(self):
+    async def async_update(self) -> None:
         """Get the latest data and updates the state."""
         self._update_callback(update_ha_state=False)
 
     @callback
-    def _update_callback(self, update_ha_state=True):
+    def _update_callback(self, update_ha_state=True) -> None:
         """Get the latest data and updates the state."""
         state = (
             self._controller.available
@@ -131,13 +111,13 @@ class BewardBinarySensor(BinarySensorEntity):
             if update_ha_state:
                 self.async_schedule_update_ha_state()
 
-    async def async_added_to_hass(self):
+    async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         self._unsub_dispatcher = async_dispatcher_connect(
             self.hass, self._controller.service_signal("update"), self._update_callback,
         )
 
-    async def async_will_remove_from_hass(self):
+    async def async_will_remove_from_hass(self) -> None:
         """Disconnect from update signal."""
         if self._unsub_dispatcher is not None:
             self._unsub_dispatcher()

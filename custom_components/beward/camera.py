@@ -9,11 +9,12 @@ import asyncio
 import datetime
 import logging
 from asyncio import run_coroutine_threadsafe
-from typing import Dict
+from typing import Dict, Optional, Any
 
 import aiohttp
 import async_timeout
 import beward
+from aiohttp.abc import StreamResponse
 from haffmpeg.camera import CameraMjpeg
 from homeassistant.components.camera import Camera, SUPPORT_STREAM
 from homeassistant.components.ffmpeg import DATA_FFMPEG
@@ -27,11 +28,12 @@ from homeassistant.helpers.aiohttp_client import (
 from . import DOMAIN
 from .const import (
     CONF_FFMPEG_ARGUMENTS,
-    EVENT_MOTION,
-    EVENT_DING,
     CAT_DOORBELL,
     CAT_CAMERA,
     CONF_CAMERAS,
+    CAMERAS,
+    CAMERA_LIVE,
+    CAMERA_NAME_LIVE,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -39,27 +41,8 @@ _LOGGER = logging.getLogger(__name__)
 _UPDATE_INTERVAL_LIVE = datetime.timedelta(seconds=1)
 _SESSION_TIMEOUT = 10  # seconds
 
-CAMERA_LIVE = "live"
-CAMERA_LAST_MOTION = "last_motion"
-CAMERA_LAST_DING = "last_ding"
 
-CAMERA_NAME_LIVE = "{} Live"
-CAMERA_NAME_LAST_MOTION = "{} Last Motion"
-CAMERA_NAME_LAST_DING = "{} Last Ding"
-
-# Camera types are defined like: name template, device class, device event
-CAMERAS: Dict[str, list] = {
-    CAMERA_LIVE: [CAMERA_NAME_LIVE, [CAT_DOORBELL, CAT_CAMERA], None],
-    CAMERA_LAST_MOTION: [
-        CAMERA_NAME_LAST_MOTION,
-        [CAT_DOORBELL, CAT_CAMERA],
-        EVENT_MOTION,
-    ],
-    CAMERA_LAST_DING: [CAMERA_NAME_LAST_DING, [CAT_DOORBELL], EVENT_DING],
-}
-
-
-def setup_platform(hass, config, add_entities, discovery_info=None):
+def setup_platform(hass, config, add_entities, discovery_info=None) -> None:
     """Set up a cameras for a Beward device."""
     if discovery_info is None:
         return
@@ -74,14 +57,14 @@ def setup_platform(hass, config, add_entities, discovery_info=None):
 
     cameras = []
     for camera_type in discovery_info[CONF_CAMERAS]:
-        if category in CAMERAS.get(camera_type)[1]:
+        if category in CAMERAS[camera_type][1]:
             if camera_type == CAMERA_LIVE:
                 cameras.append(BewardCamera(controller, config))
             else:
                 cameras.append(
                     LocalFile(
-                        CAMERAS.get(camera_type)[0].format(name),
-                        controller.history_image_path(CAMERAS.get(camera_type)[2]),
+                        CAMERAS[camera_type][0].format(name),
+                        controller.history_image_path(CAMERAS[camera_type][2]),
                     )
                 )
 
@@ -107,19 +90,19 @@ class BewardCamera(Camera):
         self._ffmpeg_input = "-rtsp_transport tcp -i " + self._stream_url
         self._ffmpeg_arguments = config.get(CONF_FFMPEG_ARGUMENTS)
 
-    async def stream_source(self):
+    async def stream_source(self) -> Optional[str]:
         """Return the stream source."""
         return self._stream_url
 
     @property
-    def supported_features(self):
+    def supported_features(self) -> Optional[int]:
         """Return supported features."""
         if self._stream_url:
             return SUPPORT_STREAM
         return 0
 
     @property
-    def name(self):
+    def name(self) -> Optional[str]:
         """Get the name of the camera."""
         return self._name
 
@@ -129,17 +112,17 @@ class BewardCamera(Camera):
         return self._controller.available
 
     @property
-    def device_state_attributes(self):
+    def device_state_attributes(self) -> Optional[Dict[str, Any]]:
         """Return the state attributes."""
         return self._controller.device_state_attributes
 
-    def camera_image(self):
+    def camera_image(self) -> bytes:
         """Return camera image."""
         return run_coroutine_threadsafe(
             self.async_camera_image(), self.hass.loop
         ).result()
 
-    async def async_camera_image(self):
+    async def async_camera_image(self) -> bytes:
         """Pull a still image from the camera."""
         now = datetime.datetime.now()
 
@@ -161,7 +144,7 @@ class BewardCamera(Camera):
             _LOGGER.error("Error getting camera image: %s", error)
             return self._last_image
 
-    async def handle_async_mjpeg_stream(self, request):
+    async def handle_async_mjpeg_stream(self, request) -> Optional[StreamResponse]:
         """Generate an HTTP MJPEG stream from the camera."""
         if not self._stream_url:
             return None

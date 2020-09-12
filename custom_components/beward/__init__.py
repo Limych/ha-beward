@@ -37,8 +37,6 @@ from homeassistant.helpers.event import track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
-from .binary_sensor import BINARY_SENSORS
-from .camera import CAMERAS
 from .const import (
     CONF_STREAM,
     ALARMS_TO_EVENTS,
@@ -48,14 +46,16 @@ from .const import (
     SUPPORT_LIB_URL,
     DEVICE_CHECK_INTERVAL,
     ATTR_DEVICE_ID,
+    CAMERAS,
+    BINARY_SENSORS,
+    SENSORS,
 )
-from .sensor import SENSORS
 
 _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = '1.1.5'
+VERSION = "1.1.5"
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
