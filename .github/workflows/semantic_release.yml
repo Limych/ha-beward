@@ -48,6 +48,6 @@ jobs:
         with:
           repo_token: ${{ secrets.GITHUB_TOKEN }}
           file: /home/runner/work/ha-beward/ha-beward/custom_components/beward/beward.zip
-          asset_name: ha-beward-${{ env.release_version }}.zip
+          asset_name: beward.zip
           tag: ${{ env.release_version }}
           overwrite: true
