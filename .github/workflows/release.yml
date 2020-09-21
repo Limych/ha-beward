@@ -21,6 +21,7 @@ jobs:
           echo "::set-env name=basedir::`pwd`/${{ env.package }}"
           echo "::set-env name=release_version::`git describe --abbrev=0`"
       - name: "Setup Git"
+        run: |
           git config --global user.name "release"
           git config --global user.email "release@GitHub"
 
