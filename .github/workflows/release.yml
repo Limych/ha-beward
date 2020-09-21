@@ -20,9 +20,9 @@ jobs:
           git config --global user.email "release@GitHub"
       - name: "Set environment variables"
         run: |
-          echo "::set-env name=package::`ls ./custom_components | sed -n 1p`"
+          echo "::set-env name=package::beward"
           echo "::set-env name=basedir::`pwd`/custom_components/${{ env.package }}"
-          echo "::set-env name=release_version::`git describe --abbrev=0`"
+          echo "::set-env name=release_version::`git describe --abbrev=0 | sed s/v//`"
 
       - name: "Set version number"
         run: |
