@@ -14,11 +14,13 @@ jobs:
       - name: "Check out repository"
         uses: actions/checkout@v1
 
-      - run: |
-          echo "::set-env name=package::beward"
+      - working-directory: ./custom_components
+        run: |
+          echo "::set-env name=package::`ls -F | grep \/$ | sed -n "s/\///g;1p"`"
           echo "::set-env name=release_version::`git describe --abbrev=0 | sed s/v//`"
-      - run: |
-          echo "::set-env name=basedir::`pwd`/custom_components/${{ env.package }}"
+      - working-directory: ./custom_components
+        run: |
+          echo "::set-env name=basedir::`pwd`/${{ env.package }}"
 
       - name: "Setup Git"
         run: |
