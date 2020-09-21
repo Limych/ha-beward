@@ -1,24 +1,13 @@
 {
-  "domain": "beward",
-  "name": "Beward",
-  "documentation": "https://github.com/Limych/ha-beward",
-  "dependencies": [],
-  "config_flow": false,
-  "codeowners": [
-    "@Limych"
-  ],
-  "requirements": [
-    "beward~=1.0"
-  ],
-  "ssdp": {
-    "st": [
-      "upnp:rootdevice"
+    "codeowners": [
+        "@Limych"
     ],
-    "manufacturer": [
-      "Beward R&D Co., Ltd"
-    ],
-    "device_type": [
-      "urn:schemas-upnp-org:device:Basic:1"
+    "config_flow": false,
+    "dependencies": [],
+    "documentation": "https://github.com/Limych/ha-beward",
+    "domain": "beward",
+    "name": "Beward",
+    "requirements": [
+        "beward~=1.0"
     ]
-  }
 }
