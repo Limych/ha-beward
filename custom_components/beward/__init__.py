@@ -55,7 +55,7 @@ _LOGGER = logging.getLogger(__name__)
 
 # Base component constants
 DOMAIN = "beward"
-VERSION = '1.1.7'
+VERSION = "1.1.7"
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 ATTRIBUTION = "Data provided by Beward device."
 
@@ -124,11 +124,20 @@ def setup(hass, config):
             )
         except ValueError as exc:
             _LOGGER.error(exc)
+            if exc == 'Unknown device "None"':
+                msg = (
+                    "Device recognition error.<br />"
+                    "Please try restarting Home Assistant — it usually helps."
+                )
+            else:
+                msg = (
+                    "Error: {}<br />"
+                    'Please <a href="{}" target="_blank">contact the developers '
+                    "of the Beward library</a> to solve this problem."
+                    "".format(exc, SUPPORT_LIB_URL)
+                )
             hass.components.persistent_notification.create(
-                "Error: {}<br />"
-                'Please <a href="{}" target="_blank">contact the developers '
-                "of the Beward library</a> to solve this problem."
-                "".format(exc, SUPPORT_LIB_URL),
+                msg,
                 title="Beward device Initialization Failure",
                 notification_id="beward_connection_error",
             )
