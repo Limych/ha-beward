@@ -1,7 +1,7 @@
 """Binary sensor platform for Beward devices."""
 
 import logging
-from typing import Dict, Optional, Any
+from typing import Any, Dict, Optional
 
 import beward
 
@@ -11,12 +11,12 @@ except ImportError:
     from homeassistant.components.binary_sensor import (
         BinarySensorDevice as BinarySensorEntity,
     )
-from homeassistant.const import CONF_NAME, CONF_BINARY_SENSORS
+
+from homeassistant.const import CONF_BINARY_SENSORS, CONF_NAME
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 
-from . import DOMAIN
-from .const import EVENT_ONLINE, CAT_DOORBELL, CAT_CAMERA, BINARY_SENSORS
+from .const import BINARY_SENSORS, CAT_CAMERA, CAT_DOORBELL, DOMAIN, EVENT_ONLINE
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -114,7 +114,9 @@ class BewardBinarySensor(BinarySensorEntity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass, self._controller.service_signal("update"), self._update_callback,
+            self.hass,
+            self._controller.service_signal("update"),
+            self._update_callback,
         )
 
     async def async_will_remove_from_hass(self) -> None:

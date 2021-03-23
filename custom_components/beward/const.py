@@ -4,34 +4,56 @@ from typing import Dict
 
 from beward.const import ALARM_MOTION, ALARM_SENSOR
 from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_MOTION,
     DEVICE_CLASS_CONNECTIVITY,
+    DEVICE_CLASS_MOTION,
 )
 from homeassistant.const import DEVICE_CLASS_TIMESTAMP
 
+# Base component constants
+NAME = "Beward Integration"
+DOMAIN = "beward"
+VERSION = "1.1.17.dev0"
+ATTRIBUTION = "Data provided by Beward device."
+ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 SUPPORT_LIB_URL = "https://github.com/Limych/py-beward/issues/new/choose"
 
+STARTUP_MESSAGE = f"""
+-------------------------------------------------------------------
+{NAME}
+Version: {VERSION}
+This is a custom integration!
+If you have ANY issues with this you need to open an issue here:
+{ISSUE_URL}
+-------------------------------------------------------------------
+"""
+
+
+# Configuration and options
 CONF_EVENTS = "events"
 CONF_RTSP_PORT = "rtsp_port"
 CONF_STREAM = "stream"
 CONF_FFMPEG_ARGUMENTS = "ffmpeg_arguments"
 CONF_CAMERAS = "cameras"
 
+# Defaults
+DEVICE_CHECK_INTERVAL = timedelta(seconds=15)
+
+# Events
 EVENT_ONLINE = "online"
 EVENT_MOTION = "motion"
 EVENT_DING = "ding"
-
+#
 ALARMS_TO_EVENTS = {
     ALARM_MOTION: EVENT_MOTION,
     ALARM_SENSOR: EVENT_DING,
 }
 
+# Attributes
 ATTR_DEVICE_ID = "device_id"
+
 
 CAT_DOORBELL = "doorbell"
 CAT_CAMERA = "camera"
-
-DEVICE_CHECK_INTERVAL = timedelta(seconds=15)
 
 CAMERA_LIVE = "live"
 CAMERA_LAST_MOTION = "last_motion"

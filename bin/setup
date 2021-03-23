@@ -1,20 +1,51 @@
-#!/bin/sh
-# Setups the repository.
+#!/usr/bin/env bash
+# Setups the development environment.
 
 # Stop on errors
 set -e
 
 ROOT="$( cd "$( dirname "$(readlink -f "$0")" )/.." >/dev/null 2>&1 && pwd )"
-
 cd "${ROOT}"
-script/bootstrap
+
+python=$(which python3)
+pip="${python} -m pip"
+
+# Load common functions
+source ./bin/_common
+
+if [ ! -d "venv" ]; then
+    log.info "Initializing the virtual environment..."
+    ${python} -m venv venv
+    source ./venv/bin/activate
+fi
+
+log.info "Updating PIP..."
+${pip} install --upgrade pip
+
+log.info "Installing development dependencies..."
+${pip} install colorlog pre-commit $(grep mypy requirements-dev.txt)
 
 pre-commit install
-pip3 install -r requirements-dev.txt
 
-touch custom_components/__init__.py
-
-CONFIG=/run/user/$(id -u)/gvfs/smb-share:server=hassio,share=config/
-if [ -d "$CONFIG" ] && [ ! -e dev-config ]; then
-    ln -s "$CONFIG" dev-config
+if [[ -f secrets.yaml ]]; then
+    GITHUB_TOKEN=$(grep github_token secrets.yaml | cut -d' ' -f2)
+    # Backup original requirements and insert tokens
+    FILES=$(ls requirements*)
+    for FILE in ${FILES}
+    do
+        cp ${FILE}{,.bak}
+        sed -i "s/{GITHUB_TOKEN}/${GITHUB_TOKEN}/g" ${FILE}
+    done
 fi
+
+${pip} install -r requirements-dev.txt
+
+if [[ -f secrets.yaml ]]; then
+    # Restore original requirements
+    for FILE in ${FILES}
+    do
+        mv -f ${FILE}{.bak,}
+    done
+fi
+
+echo '"""Custom components module."""' >custom_components/__init__.py

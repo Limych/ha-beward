@@ -21,14 +21,14 @@ from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.const import (
-    CONF_PASSWORD,
-    CONF_USERNAME,
+    ATTR_ATTRIBUTION,
+    CONF_BINARY_SENSORS,
     CONF_HOST,
     CONF_NAME,
+    CONF_PASSWORD,
     CONF_PORT,
-    CONF_BINARY_SENSORS,
     CONF_SENSORS,
-    ATTR_ATTRIBUTION,
+    CONF_USERNAME,
 )
 from homeassistant.exceptions import PlatformNotReady
 from homeassistant.helpers import discovery
@@ -38,26 +38,23 @@ from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.util import slugify
 
 from .const import (
-    CONF_STREAM,
     ALARMS_TO_EVENTS,
-    CONF_RTSP_PORT,
+    ATTR_DEVICE_ID,
+    ATTRIBUTION,
+    BINARY_SENSORS,
+    CAMERAS,
     CONF_CAMERAS,
     CONF_FFMPEG_ARGUMENTS,
-    SUPPORT_LIB_URL,
+    CONF_RTSP_PORT,
+    CONF_STREAM,
     DEVICE_CHECK_INTERVAL,
-    ATTR_DEVICE_ID,
-    CAMERAS,
-    BINARY_SENSORS,
+    DOMAIN,
     SENSORS,
+    STARTUP_MESSAGE,
+    SUPPORT_LIB_URL,
 )
 
 _LOGGER = logging.getLogger(__name__)
-
-# Base component constants
-DOMAIN = "beward"
-VERSION = "dev"
-ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
-ATTRIBUTION = "Data provided by Beward device."
 
 DEVICE_SCHEMA = vol.Schema(
     {
@@ -91,10 +88,7 @@ def setup(hass, config):
         return True
 
     # Print startup message
-    _LOGGER.info("Version %s", VERSION)
-    _LOGGER.info(
-        "If you have ANY issues with this, please report them here: %s", ISSUE_URL
-    )
+    _LOGGER.info(STARTUP_MESSAGE)
 
     hass.data.setdefault(DOMAIN, {})
 

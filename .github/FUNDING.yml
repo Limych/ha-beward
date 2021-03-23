@@ -10,6 +10,5 @@ liberapay: #
 issuehunt: # Replace with a single IssueHunt username
 otechie: # Replace with a single Otechie username
 custom: [
-  'https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=UAGFL5L6M8RN2&item_name=[beward]+Donation+for+a+big+barrel+of+coffee+:)&currency_code=EUR&source=url',
-  'bitcoin:16yfCfz9dZ8y8yuSwBFVfiAa3CNYdMh7Ts'
+    "https://sochain.com/a/mjz640g"
 ]

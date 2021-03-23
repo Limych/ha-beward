@@ -1,12 +1,14 @@
 {
+    "domain": "beward",
+    "name": "Beward Integration",
+    "version": "1.1.17.dev0",
+    "documentation": "https://github.com/Limych/ha-beward",
+    "issue_tracker": "https://github.com/Limych/ha-beward/issues",
+    "dependencies": [],
+    "config_flow": false,
     "codeowners": [
         "@Limych"
     ],
-    "config_flow": false,
-    "dependencies": [],
-    "documentation": "https://github.com/Limych/ha-beward",
-    "domain": "beward",
-    "name": "Beward",
     "requirements": [
         "beward~=1.0"
     ]

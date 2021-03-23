@@ -1,5 +1,12 @@
 {
-  "name": "Beward Cameras & Doorbells",
-  "domains": ["beward", "camera", "sensor", "binary_sensor"],
-  "iot_class": "Local Push"
+  "name": "Beward Integration",
+  "domains": [
+    "beward",
+    "camera",
+    "sensor",
+    "binary_sensor"
+  ],
+  "iot_class": "Local Push",
+  "hacs": "1.6.0",
+  "homeassistant": "0.118.0"
 }

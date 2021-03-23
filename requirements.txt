@@ -1,6 +1,2 @@
-async_timeout~=3.0
-aiohttp~=3.6
-voluptuous==0.11.7
-homeassistant~=0.114
+homeassistant
 beward~=1.0
-ha-ffmpeg~=2.0

@@ -3,28 +3,25 @@
 import logging
 from datetime import datetime
 from os import path
-from typing import Optional, Union, Dict, Any
+from typing import Any, Dict, Optional, Union
 
 import beward
 import homeassistant.util.dt as dt_util
-from homeassistant.const import (
-    CONF_NAME,
-    CONF_SENSORS,
-)
+from homeassistant.const import CONF_NAME, CONF_SENSORS
 from homeassistant.core import callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
 
-from . import DOMAIN
 from .const import (
-    CAT_DOORBELL,
     CAT_CAMERA,
-    EVENT_MOTION,
+    CAT_DOORBELL,
+    DOMAIN,
     EVENT_DING,
-    SENSORS,
-    SENSOR_LAST_MOTION,
-    SENSOR_LAST_DING,
+    EVENT_MOTION,
     SENSOR_LAST_ACTIVITY,
+    SENSOR_LAST_DING,
+    SENSOR_LAST_MOTION,
+    SENSORS,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -155,7 +152,9 @@ class BewardSensor(Entity):
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
         self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass, self._controller.service_signal("update"), self._update_callback,
+            self.hass,
+            self._controller.service_signal("update"),
+            self._update_callback,
         )
 
     async def async_will_remove_from_hass(self) -> None:
