@@ -4,6 +4,23 @@ logger:
   default: info
   logs:
     custom_components.beward: debug
+#    beward: debug
 
 # If you need to debug uncomment the line below (doc: https://www.home-assistant.io/integrations/debugpy/)
 # debugpy:
+
+beward:
+  - host: !secret camera_doorbell_host
+    username: !secret camera_doorbell_login
+    password: !secret camera_doorbell_password
+    name: "Front door"
+    stream: 1
+    binary_sensors:
+      - online
+      - motion
+      - ding
+    sensors:
+      - last_activity
+      - last_motion
+      - last_ding
+

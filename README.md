@@ -274,7 +274,7 @@ SOFTWARE.
 [component]: https://github.com/Limych/ha-beward
 [commits-shield]: https://img.shields.io/github/commit-activity/y/Limych/ha-beward.svg?style=popout
 [commits]: https://github.com/Limych/ha-beward/commits/master
-[hacs-shield]: https://img.shields.io/badge/HACS-Custom-orange.svg?style=popout
+[hacs-shield]: https://img.shields.io/badge/HACS-Default-orange.svg?style=popout
 [hacs]: https://hacs.xyz
 [exampleimg]: https://github.com/Limych/ha-beward/raw/master/beward.png
 [forum-shield]: https://img.shields.io/badge/community-forum-brightgreen.svg?style=popout

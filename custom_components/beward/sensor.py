@@ -1,116 +1,104 @@
 """Sensor platform for Beward devices."""
+#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Creative Commons BY-NC-SA 4.0 International Public License
+#  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
 import logging
 from datetime import datetime
 from os import path
-from typing import Any, Dict, Optional, Union
+from typing import Optional, Union
 
 import beward
 import homeassistant.util.dt as dt_util
-from homeassistant.const import CONF_NAME, CONF_SENSORS
-from homeassistant.core import callback
-from homeassistant.helpers.dispatcher import async_dispatcher_connect
-from homeassistant.helpers.entity import Entity
+from homeassistant.components.sensor import ENTITY_ID_FORMAT
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
+from homeassistant.const import CONF_SENSORS
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers.entity import generate_entity_id
+from homeassistant.helpers.typing import ConfigType
 
+from . import BewardController
 from .const import (
     CAT_CAMERA,
     CAT_DOORBELL,
     DOMAIN,
+    DOMAIN_YAML,
     EVENT_DING,
     EVENT_MOTION,
+    ICON_SENSOR,
     SENSOR_LAST_ACTIVITY,
     SENSOR_LAST_DING,
     SENSOR_LAST_MOTION,
     SENSORS,
 )
+from .entity import BewardEntity
 
 _LOGGER = logging.getLogger(__name__)
 
 
-async def async_setup_platform(
-    hass, config, async_add_entities, discovery_info=None
-) -> None:
-    """Set up a binary sensors for a Beward device."""
-    if discovery_info is None:
-        return
+async def async_setup_entry(
+    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+) -> bool:
+    """Set up sensors for a Beward device."""
+    entities = []
 
-    name = discovery_info[CONF_NAME]
-    controller = hass.data[DOMAIN][name]
+    if entry.source == SOURCE_IMPORT:
+        config = hass.data[DOMAIN_YAML]
+        for index, device_config in enumerate(config):
+            controller = hass.data[DOMAIN][entry.entry_id][index]
+            entities.extend(_setup_entities(controller, device_config))
+
+    else:
+        config = entry.data.copy()
+        config.update(entry.options)
+        controller = hass.data[DOMAIN][entry.entry_id]
+        entities.extend(_setup_entities(controller, config))
+
+    if entities:
+        async_add_entities(entities, True)
+    return True
+
+
+def _setup_entities(controller: BewardController, config: ConfigType) -> list:
+    """Set up entities for device."""
     category = None
-    if isinstance(controller.device, beward.BewardCamera):
-        category = CAT_CAMERA
     if isinstance(controller.device, beward.BewardDoorbell):
         category = CAT_DOORBELL
+    elif isinstance(controller.device, beward.BewardCamera):
+        category = CAT_CAMERA
 
-    sensors = []
-    for sensor_type in discovery_info[CONF_SENSORS]:
+    entities = []
+    for sensor_type in config.get(CONF_SENSORS, []):
         if category in SENSORS[sensor_type][1]:
-            sensors.append(BewardSensor(controller, sensor_type))
+            entities.append(BewardSensor(controller, sensor_type))
 
-    async_add_entities(sensors, True)
+    return entities
 
 
-class BewardSensor(Entity):
+class BewardSensor(BewardEntity):
     """A sensor implementation for Beward device."""
 
-    def __init__(self, controller, sensor_type: str):
+    def __init__(self, controller: BewardController, sensor_type: str):
         """Initialize a sensor for Beward device."""
-        super().__init__()
+        super().__init__(controller)
 
-        self._unsub_dispatcher = None
+        self._unique_id = f"{self._controller.unique_id}-{sensor_type}"
+        self._name = "{} {}".format(self._controller.name, SENSORS[sensor_type][0])
+        self._icon = ICON_SENSOR
+        self._device_class = SENSORS[sensor_type][2]
         self._sensor_type = sensor_type
-        self._controller = controller
-        self._name = "{} {}".format(
-            self._controller.name, SENSORS[self._sensor_type][0]
+
+        self.entity_id = generate_entity_id(
+            ENTITY_ID_FORMAT, self._name, hass=self.hass
         )
-        self._device_class = SENSORS[self._sensor_type][2]
-        self._icon = "mdi:{}".format(SENSORS[self._sensor_type][3])
-        self._state = None
-        self._unique_id = f"{self._controller.unique_id}-{self._sensor_type}"
-
-        self._update_callback(update_ha_state=False)
-
-    @property
-    def name(self) -> Optional[str]:
-        """Return the name of the sensor."""
-        return self._name
-
-    @property
-    def available(self) -> bool:
-        """Return True if entity is available."""
-        return self._controller.available
 
     @property
     def state(self) -> Union[None, str, int, float]:
         """Return the state of the sensor."""
         return self._state
 
-    @property
-    def unique_id(self) -> Optional[str]:
-        """Return a unique ID."""
-        return self._unique_id
-
-    @property
-    def device_class(self) -> Optional[str]:
-        """Return the class of the sensor."""
-        return self._device_class
-
-    @property
-    def device_state_attributes(self) -> Optional[Dict[str, Any]]:
-        """Return the state attributes."""
-        return self._controller.device_state_attributes
-
-    @property
-    def icon(self) -> Optional[str]:
-        """Icon to use in the frontend, if any."""
-        return self._icon
-
-    @property
-    def should_poll(self) -> bool:
-        """Return the polling state."""
-        return False
-
     def _get_file_mtime(self, event) -> Optional[datetime]:
+        """Return modification time of file or None."""
         image_path = self._controller.history_image_path(event)
         try:
             return dt_util.utc_from_timestamp(path.getmtime(image_path))
@@ -118,6 +106,7 @@ class BewardSensor(Entity):
             return None
 
     def _get_event_timestamp(self, event) -> Optional[datetime]:
+        """Return event's last timestamp or None."""
         return self._controller.event_timestamp.get(event) or self._get_file_mtime(
             event
         )
@@ -146,18 +135,6 @@ class BewardSensor(Entity):
         if self._state != state:
             self._state = state
             _LOGGER.debug('%s sensor state changed to "%s"', self._name, self._state)
+
             if update_ha_state:
                 self.async_schedule_update_ha_state()
-
-    async def async_added_to_hass(self) -> None:
-        """Register callbacks."""
-        self._unsub_dispatcher = async_dispatcher_connect(
-            self.hass,
-            self._controller.service_signal("update"),
-            self._update_callback,
-        )
-
-    async def async_will_remove_from_hass(self) -> None:
-        """Disconnect from update signal."""
-        if self._unsub_dispatcher is not None:
-            self._unsub_dispatcher()
