@@ -7,11 +7,15 @@
   "dependencies": [
     "ffmpeg"
   ],
+  "after_dependencies": [
+    "local_file"
+  ],
   "config_flow": false,
   "codeowners": [
     "@Limych"
   ],
   "requirements": [
     "beward~=1.0"
-  ]
+  ],
+  "iot_class": "local_push"
 }
