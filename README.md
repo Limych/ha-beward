@@ -8,6 +8,7 @@
 
 [![hacs][hacs-shield]][hacs]
 [![Project Maintenance][maintenance-shield]][user_profile]
+[![Support me on Patreon][patreon-shield]][patreon]
 
 [![Community Forum][forum-shield]][forum]
 
@@ -291,3 +292,5 @@ SOFTWARE.
 [contributors]: https://github.com/Limych/ha-beward/graphs/contributors
 [beward]: https://www.beward.ru/
 [ffmpeg-doc]: https://www.home-assistant.io/components/ffmpeg/
+[patreon-shield]: https://img.shields.io/endpoint.svg?url=https%3A%2F%2Fshieldsio-patreon.vercel.app%2Fapi%3Fusername%3DLimych%26type%3Dpatrons&style=popout
+[patreon]: https://www.patreon.com/join/limych
