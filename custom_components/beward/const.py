@@ -47,7 +47,11 @@ CONF_STREAM = "stream"
 CONF_FFMPEG_ARGUMENTS = "ffmpeg_arguments"
 CONF_CAMERAS = "cameras"
 
+UNDO_UPDATE_LISTENER = "undo_update_listener"
+
 # Defaults
+DEFAULT_PORT = 80
+DEFAULT_STREAM = 0
 
 # Events
 EVENT_ONLINE = "online"

@@ -1,0 +1,37 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Устройство уже настроено.",
+            "no_mixed_config": "Настройка уже выполнена. Настройка через configuration.yaml несовместима с настройкой через интерфейс."
+        },
+        "step": {
+            "user": {
+                "title": "Beward",
+                "description": "Если вам нужна помощь с настройкой, посмотрите здесь: https://github.com/Limych/ha-beward",
+                "data": {
+                    "host": "IP-адрес хоста",
+                    "port": "Порт",
+                    "username": "Имя пользователя",
+                    "password": "Пароль"
+                }
+            }
+        },
+        "error": {
+            "auth": "Адрес хоста, порт, имя пользователя или пароль — неверны."
+        }
+    },
+    "options": {
+        "abort": {
+            "no_options_available": "Конфигурация, созданная через configuration.yaml, не может быть изменена через пользовательский интерфейс."
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "cameras": "Камеры",
+                    "binary_sensors": "Двоичные сенсоры",
+                    "sensors": "Сенсоры временных отметок"
+                }
+            }
+        }
+    }
+}

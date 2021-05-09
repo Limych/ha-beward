@@ -43,7 +43,7 @@ async def async_setup_entry(
     else:
         config = entry.data.copy()
         config.update(entry.options)
-        controller = hass.data[DOMAIN][entry.entry_id]
+        controller = hass.data[DOMAIN][entry.entry_id][0]
         entities.extend(_setup_entities(controller, config))
 
     if entities:

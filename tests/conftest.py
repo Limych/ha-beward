@@ -19,8 +19,6 @@ from unittest.mock import patch
 
 import pytest
 
-from custom_components.beward import IntegrationBewardApiClient
-
 pytest_plugins = "pytest_homeassistant_custom_component"  # pylint: disable=invalid-name
 
 
@@ -41,7 +39,7 @@ def skip_notifications_fixture():
 @pytest.fixture(name="bypass_get_data")
 def bypass_get_data_fixture():
     """Skip calls to get data from API."""
-    with patch.object(IntegrationBewardApiClient, "async_get_data"):
+    with patch("beward.Beward.factory"):
         yield
 
 
@@ -50,7 +48,5 @@ def bypass_get_data_fixture():
 @pytest.fixture(name="error_on_get_data")
 def error_get_data_fixture():
     """Simulate error when retrieving data from API."""
-    with patch.object(
-        IntegrationBewardApiClient, "async_get_data", side_effect=Exception
-    ):
+    with patch("beward.Beward.factory", side_effect=Exception):
         yield

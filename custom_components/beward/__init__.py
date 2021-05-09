@@ -47,6 +47,8 @@ from .const import (
     CONF_FFMPEG_ARGUMENTS,
     CONF_RTSP_PORT,
     CONF_STREAM,
+    DEFAULT_PORT,
+    DEFAULT_STREAM,
     DOMAIN,
     DOMAIN_YAML,
     EVENT_ONLINE,
@@ -54,6 +56,7 @@ from .const import (
     SENSORS,
     STARTUP_MESSAGE,
     SUPPORT_LIB_URL,
+    UNDO_UPDATE_LISTENER,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -64,9 +67,9 @@ DEVICE_SCHEMA = vol.Schema(
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_PORT, default=80): int,
+        vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Optional(CONF_RTSP_PORT): int,
-        vol.Optional(CONF_STREAM, default=0): int,
+        vol.Optional(CONF_STREAM, default=DEFAULT_STREAM): int,
         vol.Optional(CONF_FFMPEG_ARGUMENTS, default=DEFAULT_ARGUMENTS): cv.string,
         vol.Optional(CONF_CAMERAS, default=list(CAMERAS)): vol.All(
             cv.ensure_list, [vol.In(CAMERAS)]
@@ -103,11 +106,21 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
+async def async_update_listener(hass: HomeAssistant, config_entry: ConfigEntry):
+    """Handle options update."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up this integration using UI."""
+    hass.data[DOMAIN][entry.entry_id] = {}
+
+    # Add update listener for config entry changes (options)
+    undo_listener = entry.add_update_listener(async_update_listener)
+    hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER] = undo_listener
+
     if entry.source == SOURCE_IMPORT:
         config = hass.data[DOMAIN_YAML]
-        hass.data[DOMAIN][entry.entry_id] = {}
 
         for index, device_config in enumerate(config):
             hass.data[DOMAIN][entry.entry_id][index] = await _async_setup_device(
@@ -118,7 +131,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         config = entry.data.copy()
         config.update(entry.options)
 
-        hass.data[DOMAIN][entry.entry_id] = await _async_setup_device(
+        hass.data[DOMAIN][entry.entry_id][0] = await _async_setup_device(
             hass, entry, config
         )
 
@@ -149,9 +162,9 @@ async def _async_setup_device(
                 device_ip,
                 username,
                 device_config.get(CONF_PASSWORD),
-                port=device_config.get(CONF_PORT),
+                port=device_config.get(CONF_PORT, DEFAULT_PORT),
                 rtsp_port=device_config.get(CONF_RTSP_PORT),
-                stream=device_config.get(CONF_STREAM),
+                stream=device_config.get(CONF_STREAM, DEFAULT_STREAM),
             )
 
         device = await hass.async_add_executor_job(get_device)
@@ -219,6 +232,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         )
     )
     if unloaded:
+        hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER]()
         hass.data[DOMAIN].pop(entry.entry_id)
 
     return unloaded

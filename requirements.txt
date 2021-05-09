@@ -1,2 +1,3 @@
 homeassistant
 beward~=1.0
+ha-ffmpeg==2.0

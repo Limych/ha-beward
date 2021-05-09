@@ -65,7 +65,7 @@ async def async_setup_entry(
     else:
         config = entry.data.copy()
         config.update(entry.options)
-        controller = hass.data[DOMAIN][entry.entry_id]
+        controller = hass.data[DOMAIN][entry.entry_id][0]
         entities.extend(await _async_setup_entities(controller, config))
 
     if entities:
@@ -84,7 +84,7 @@ async def _async_setup_entities(
         category = CAT_CAMERA
 
     entities = []
-    for camera_type in config.get(CONF_CAMERAS, []):
+    for camera_type in config.get(CONF_CAMERAS, list(CAMERAS)):
         if category in CAMERAS[camera_type][1]:
             if camera_type == CAMERA_LIVE:
                 await controller.hass.async_add_executor_job(
