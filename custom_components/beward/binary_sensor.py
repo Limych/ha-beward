@@ -37,13 +37,15 @@ async def async_setup_entry(
     if entry.source == SOURCE_IMPORT:
         config = hass.data[DOMAIN_YAML]
         for index, device_config in enumerate(config):
-            controller = hass.data[DOMAIN][entry.entry_id][index]
+            controller = hass.data[DOMAIN][entry.entry_id][
+                index
+            ]  # type: BewardController
             entities.extend(_setup_entities(controller, device_config))
 
     else:
         config = entry.data.copy()
         config.update(entry.options)
-        controller = hass.data[DOMAIN][entry.entry_id][0]
+        controller = hass.data[DOMAIN][entry.entry_id][0]  # type: BewardController
         entities.extend(_setup_entities(controller, config))
 
     if entities:

@@ -18,6 +18,9 @@
 from unittest.mock import patch
 
 import pytest
+from beward import Beward, BewardGeneric
+
+from tests.const import MOCK_HOST, MOCK_PASSWORD, MOCK_PORT, MOCK_USERNAME
 
 pytest_plugins = "pytest_homeassistant_custom_component"  # pylint: disable=invalid-name
 
@@ -42,12 +45,31 @@ def skip_notifications_fixture():
         yield
 
 
+class MockBewardDevice(BewardGeneric):
+    """Beward device mock."""
+
+    def __init__(self):
+        """Initialize class."""
+        super().__init__(MOCK_HOST, MOCK_USERNAME, MOCK_PASSWORD, port=MOCK_PORT)
+
+    @property
+    def system_info(self):
+        """Return mock system info."""
+        return {
+            "DeviceID": "mock_device",
+        }
+
+
 # This fixture, when used, will result in calls to async_get_data to return None. To have the call
 # return a value, we would add the `return_value=<VALUE_TO_RETURN>` parameter to the patch call.
 @pytest.fixture(name="bypass_get_data")
 def bypass_get_data_fixture():
     """Skip calls to get data from API."""
-    with patch("beward.Beward.factory"):
+    with patch.object(BewardGeneric, "is_online", return_value=True), patch.object(
+        Beward,
+        "factory",
+        return_value=MockBewardDevice(),
+    ):
         yield
 
 

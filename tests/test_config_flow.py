@@ -8,6 +8,7 @@ from homeassistant import config_entries, data_entry_flow
 from homeassistant.core import HomeAssistant
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
+from custom_components.beward.config_flow import BewardFlowHandler
 from custom_components.beward.const import DOMAIN
 
 from .const import MOCK_CONFIG, MOCK_HOST, MOCK_OPTIONS
@@ -19,11 +20,35 @@ from .const import MOCK_CONFIG, MOCK_HOST, MOCK_OPTIONS
 @pytest.fixture(autouse=True)
 def bypass_setup_fixture():
     """Prevent setup."""
-    with patch("custom_components.beward.async_setup", return_value=True,), patch(
+    with patch("custom_components.beward.async_setup", return_value=True), patch(
         "custom_components.beward.async_setup_entry",
         return_value=True,
     ):
         yield
+
+
+async def test_config_flow_import(hass: HomeAssistant):
+    """Test a config flow import."""
+    config = {"some": "data"}
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN,
+        context={"source": config_entries.SOURCE_IMPORT},
+        data=config,
+    )
+
+    assert result["type"] == data_entry_flow.RESULT_TYPE_CREATE_ENTRY
+    assert result["data"] == config
+
+    with patch.object(
+        BewardFlowHandler, "_async_current_entries", return_value=["Test"]
+    ):
+        result = await hass.config_entries.flow.async_init(
+            DOMAIN,
+            context={"source": config_entries.SOURCE_IMPORT},
+            data=config,
+        )
+
+        assert result["type"] == data_entry_flow.RESULT_TYPE_ABORT
 
 
 # Here we simiulate a successful config flow from the backend.
@@ -73,6 +98,17 @@ async def test_failed_config_flow(hass: HomeAssistant, error_on_get_data):
 
     assert result["type"] == data_entry_flow.RESULT_TYPE_FORM
     assert result["errors"] == {"base": "auth"}
+
+    with patch.object(
+        BewardFlowHandler,
+        "_async_current_entries",
+        return_value=[MockConfigEntry(source=config_entries.SOURCE_IMPORT)],
+    ):
+        result = await hass.config_entries.flow.async_configure(
+            result["flow_id"], user_input=MOCK_CONFIG
+        )
+
+        assert result["type"] == data_entry_flow.RESULT_TYPE_ABORT
 
 
 # Our config flow also has an options flow, so we must test it as well.

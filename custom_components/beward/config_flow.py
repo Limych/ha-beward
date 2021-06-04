@@ -8,7 +8,6 @@ import beward
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
 from homeassistant import config_entries
-from homeassistant.config_entries import SOURCE_IMPORT
 from homeassistant.const import (
     CONF_BINARY_SENSORS,
     CONF_HOST,
@@ -52,7 +51,7 @@ class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         errors = {}
 
         for entry in self._async_current_entries():
-            if entry.source == SOURCE_IMPORT:
+            if entry.source == config_entries.SOURCE_IMPORT:
                 return self.async_abort(reason="no_mixed_config")
 
         if user_input is not None:
@@ -128,7 +127,7 @@ class BewardOptionsFlowHandler(config_entries.OptionsFlow):
 
     async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
         """Manage the options."""
-        if self.config_entry.source == SOURCE_IMPORT:
+        if self.config_entry.source == config_entries.SOURCE_IMPORT:
             return self.async_abort(reason="no_options_available")
 
         return await self.async_step_user()

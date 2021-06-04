@@ -8,12 +8,12 @@ https://github.com/Limych/ha-beward
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 
-import asyncio
 import logging
 import os
 import tempfile
 from datetime import datetime
-from typing import Dict
+from time import sleep
+from typing import Dict, Optional
 
 import beward
 import homeassistant.helpers.config_validation as cv
@@ -206,11 +206,12 @@ async def _async_setup_device(
         raise ConfigEntryNotReady
 
     sys_info = await hass.async_add_executor_job(lambda: device.system_info)
+    device_id = sys_info.get("DeviceID", device.host)
 
     if name is None:
         name = "Beward %s" % sys_info.get("DeviceID", unique_id)
 
-    controller = BewardController(hass, device, name)
+    controller = BewardController(hass, device_id, device, name)
     _LOGGER.info(
         'Connected to Beward device "%s" as %s@%s',
         controller.name,
@@ -223,17 +224,16 @@ async def _async_setup_device(
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Handle removal of an entry."""
-    unloaded = all(
-        await asyncio.gather(
-            *[
-                hass.config_entries.async_forward_entry_unload(entry, platform)
-                for platform in PLATFORMS
-            ]
-        )
-    )
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
-        hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER]()
-        hass.data[DOMAIN].pop(entry.entry_id)
+        cfg = hass.data[DOMAIN][entry.entry_id]  # type: dict
+        cfg[UNDO_UPDATE_LISTENER]()
+        del cfg[UNDO_UPDATE_LISTENER]
+
+        for device in cfg.values():  # type: BewardController
+            device.__del__()
+
+        del hass.data[DOMAIN][entry.entry_id]
 
     return unloaded
 
@@ -247,12 +247,18 @@ async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
 class BewardController:
     """Beward device controller."""
 
-    def __init__(self, hass: HomeAssistant, device: beward.BewardGeneric, name: str):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        unique_id: Optional[str],
+        device: beward.BewardGeneric,
+        name: str,
+    ):
         """Initialize configured device."""
         self.hass = hass
         self.name = name
         self._device = device
-        self._unique_id = self._device.system_info.get("DeviceID", self._device.host)
+        self._unique_id = unique_id
 
         self._available = True
         self.event_timestamp: Dict[str, datetime] = {}
@@ -261,6 +267,12 @@ class BewardController:
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
         self._device.listen_alarms(alarms=ALARMS_TO_EVENTS.keys())
+
+    def __del__(self):
+        """Destructor."""
+        # Remove device alarms handler.
+        self._device.remove_alarms_handler(self._alarms_handler)
+        sleep(0.1)
 
     def service_signal(self, service):
         """Encode service and identifier into signal."""
