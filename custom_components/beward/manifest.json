@@ -1,13 +1,22 @@
 {
+    "domain": "beward",
+    "name": "Beward Integration",
+    "version": "1.1.16",
+    "documentation": "https://github.com/Limych/ha-beward",
+    "issue_tracker": "https://github.com/Limych/ha-beward/issues",
+    "dependencies": [
+        "ffmpeg"
+    ],
+    "after_dependencies": [
+        "local_file"
+    ],
+    "config_flow": false,
     "codeowners": [
         "@Limych"
     ],
-    "config_flow": false,
-    "dependencies": [],
-    "documentation": "https://github.com/Limych/ha-beward",
-    "domain": "beward",
-    "name": "Beward",
     "requirements": [
-        "beward~=1.0"
-    ]
+        "beward~=1.0",
+        "ha-ffmpeg==2.0"
+    ],
+    "iot_class": "local_push"
 }
