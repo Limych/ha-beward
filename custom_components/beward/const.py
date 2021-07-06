@@ -18,7 +18,7 @@ from homeassistant.const import DEVICE_CLASS_TIMESTAMP
 # Base component constants
 NAME = "Beward Integration"
 DOMAIN = "beward"
-VERSION = "1.1.17.dev0"
+VERSION = "1.1.18.dev0"
 ATTRIBUTION = "Data provided by Beward device."
 ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
 SUPPORT_LIB_URL = "https://github.com/Limych/py-beward/issues/new/choose"
