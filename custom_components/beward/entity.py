@@ -10,7 +10,7 @@ https://github.com/Limych/ha-beward
 
 import logging
 from abc import ABC
-from typing import Any, Dict, Optional
+from typing import Any, Mapping, Optional
 
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.core import callback
@@ -75,9 +75,9 @@ class BewardEntity(Entity, ABC):
         return self._controller.device_info
 
     @property
-    def device_state_attributes(self) -> Optional[Dict[str, Any]]:
-        """Return the state attributes."""
-        return self._controller.device_state_attributes
+    def extra_state_attributes(self) -> Optional[Mapping[str, Any]]:
+        """Return entity specific state attributes."""
+        return self._controller.extra_state_attributes
 
     @callback
     def _update_callback(self, update_ha_state=True) -> None:

@@ -13,7 +13,7 @@ import os
 import tempfile
 from datetime import datetime
 from time import sleep
-from typing import Dict, Optional
+from typing import Any, Dict, Mapping, Optional
 
 import beward
 import homeassistant.helpers.config_validation as cv
@@ -177,10 +177,9 @@ async def _async_setup_device(
             )
         else:
             msg = (
-                "Error: {}<br />"
-                'Please <a href="{}" target="_blank">contact the developers '
+                f"Error: {exc}<br />"
+                f'Please <a href="{SUPPORT_LIB_URL}" target="_blank">contact the developers '
                 "of the Beward library</a> to solve this problem."
-                "".format(exc, SUPPORT_LIB_URL)
             )
         hass.components.persistent_notification.create(
             msg,
@@ -193,15 +192,11 @@ async def _async_setup_device(
         lambda: device.available
     ):
         if device is None:
-            err_msg = "Authorization rejected by Beward device for {}@{}".format(
-                username,
-                device_ip,
+            err_msg = (
+                f"Authorization rejected by Beward device for {username}@{device_ip}"
             )
         else:
-            err_msg = "Could not connect to Beward device as {}@{}".format(
-                username,
-                device_ip,
-            )
+            err_msg = f"Could not connect to Beward device as {username}@{device_ip}"
         _LOGGER.error(err_msg)
         raise ConfigEntryNotReady
 
@@ -209,7 +204,7 @@ async def _async_setup_device(
     device_id = sys_info.get("DeviceID", device.host)
 
     if name is None:
-        name = "Beward %s" % sys_info.get("DeviceID", unique_id)
+        name = f"Beward {sys_info.get('DeviceID', unique_id)}"
 
     controller = BewardController(hass, device_id, device, name)
     _LOGGER.info(
@@ -276,7 +271,7 @@ class BewardController:
 
     def service_signal(self, service):
         """Encode service and identifier into signal."""
-        signal = "{}_{}_{}".format(DOMAIN, service, slugify(self.unique_id))
+        signal = f"{DOMAIN}_{service}_{slugify(self.unique_id)}"
         return signal
 
     @property
@@ -305,8 +300,8 @@ class BewardController:
         }
 
     @property
-    def device_state_attributes(self):
-        """Return the state attributes."""
+    def extra_state_attributes(self) -> Optional[Mapping[str, Any]]:
+        """Return entity specific state attributes."""
         return {
             ATTR_ATTRIBUTION: ATTRIBUTION,
         }
