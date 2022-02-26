@@ -1,9 +1,11 @@
 """Adds config flow for Beward."""
-from typing import Optional
-
-#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
+from __future__ import annotations
+
+from typing import Final, Optional
+
 import beward
 import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
@@ -32,8 +34,8 @@ from .const import (  # pylint: disable=unused-import
 class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for Beward."""
 
-    VERSION = 1
-    CONNECTION_CLASS = config_entries.CONN_CLASS_CLOUD_POLL
+    VERSION: Final = 1
+    CONNECTION_CLASS: Final = config_entries.CONN_CLASS_CLOUD_POLL
 
     async def async_step_import(self, platform_config: ConfigType):
         """Import a config entry.
@@ -147,14 +149,14 @@ class BewardOptionsFlowHandler(config_entries.OptionsFlow):
                     vol.Optional(
                         CONF_CAMERAS,
                         default=self.options.get(CONF_CAMERAS, list(CAMERAS)),
-                    ): cv.multi_select(list(CAMERAS)),
+                    ): cv.multi_select(CAMERAS),
                     vol.Optional(
                         CONF_BINARY_SENSORS,
                         default=self.options.get(CONF_BINARY_SENSORS, []),
-                    ): cv.multi_select(list(BINARY_SENSORS)),
+                    ): cv.multi_select(BINARY_SENSORS),
                     vol.Optional(
                         CONF_SENSORS, default=self.options.get(CONF_SENSORS, [])
-                    ): cv.multi_select(list(SENSORS)),
+                    ): cv.multi_select(SENSORS),
                 }
             ),
         )

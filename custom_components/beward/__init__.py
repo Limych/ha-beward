@@ -4,16 +4,17 @@ Component to integrate with Beward security devices.
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
-#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
+from __future__ import annotations
 
 import logging
 import os
 import tempfile
 from datetime import datetime
 from time import sleep
-from typing import Any, Dict, Mapping, Optional
+from typing import Any, Dict, Final, Mapping, Optional
 
 import beward
 import homeassistant.helpers.config_validation as cv
@@ -59,9 +60,9 @@ from .const import (
     UNDO_UPDATE_LISTENER,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
-DEVICE_SCHEMA = vol.Schema(
+DEVICE_SCHEMA: Final = vol.Schema(
     {
         vol.Required(CONF_HOST): cv.string,
         vol.Required(CONF_USERNAME): cv.string,
@@ -81,7 +82,7 @@ DEVICE_SCHEMA = vol.Schema(
     }
 )
 
-CONFIG_SCHEMA = vol.Schema(
+CONFIG_SCHEMA: Final = vol.Schema(
     {DOMAIN: vol.All(cv.ensure_list, [DEVICE_SCHEMA])}, extra=vol.ALLOW_EXTRA
 )
 

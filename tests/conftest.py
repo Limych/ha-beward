@@ -66,6 +66,8 @@ class MockBewardDevice(BewardGeneric):
 def bypass_get_data_fixture():
     """Skip calls to get data from API."""
     with patch.object(BewardGeneric, "is_online", return_value=True), patch.object(
+        BewardGeneric, "listen_alarms"
+    ), patch.object(
         Beward,
         "factory",
         return_value=MockBewardDevice(),

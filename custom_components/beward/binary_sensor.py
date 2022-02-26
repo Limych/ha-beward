@@ -1,10 +1,11 @@
 """Binary sensor platform for Beward devices."""
-#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
+from __future__ import annotations
 
 import logging
-from typing import Optional
+from typing import Final
 
 import beward
 from homeassistant.components.binary_sensor import ENTITY_ID_FORMAT, BinarySensorEntity
@@ -25,7 +26,7 @@ from .const import (
 )
 from .entity import BewardEntity
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -76,26 +77,20 @@ class BewardBinarySensor(BewardEntity, BinarySensorEntity):
         """Initialize a sensor for Beward device."""
         super().__init__(controller)
 
-        self._unique_id = f"{self._controller.unique_id}-{sensor_type}"
-        self._name = "{} {}".format(
-            self._controller.name, BINARY_SENSORS[sensor_type][0]
-        )
-        self._device_class = BINARY_SENSORS[sensor_type][2]
         self._sensor_type = sensor_type
 
+        self._attr_unique_id = f"{self._controller.unique_id}-{sensor_type}"
+        self._attr_name = f"{self._controller.name} {BINARY_SENSORS[sensor_type][0]}"
+        self._attr_device_class = BINARY_SENSORS[sensor_type][2]
+
         self.entity_id = generate_entity_id(
-            ENTITY_ID_FORMAT, self._name, hass=self.hass
+            ENTITY_ID_FORMAT, self._attr_name, hass=self.hass
         )
 
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
         return self._sensor_type == EVENT_ONLINE or self._controller.available
-
-    @property
-    def is_on(self) -> Optional[bool]:
-        """Return True if the binary sensor is on."""
-        return self._state
 
     async def async_update(self) -> None:
         """Get the latest data and updates the state."""
@@ -109,10 +104,12 @@ class BewardBinarySensor(BewardEntity, BinarySensorEntity):
             if self._sensor_type == EVENT_ONLINE
             else self._controller.event_state.get(self._sensor_type, False)
         )
-        if self._state != state:
-            self._state = state
+        if self._attr_is_on != state:
+            self._attr_is_on = state
             _LOGGER.debug(
-                '%s binary sensor state changed to "%s"', self._name, self._state
+                '%s binary sensor state changed to "%s"',
+                self._attr_name,
+                self._attr_is_on,
             )
             if update_ha_state:
                 self.async_schedule_update_ha_state()

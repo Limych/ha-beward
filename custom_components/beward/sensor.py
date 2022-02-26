@@ -1,16 +1,17 @@
 """Sensor platform for Beward devices."""
-#  Copyright (c) 2019-2021, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
+from __future__ import annotations
 
 import logging
 from datetime import datetime
 from os import path
-from typing import Optional, Union
+from typing import Final, Optional
 
 import beward
 import homeassistant.util.dt as dt_util
-from homeassistant.components.sensor import ENTITY_ID_FORMAT
+from homeassistant.components.sensor import ENTITY_ID_FORMAT, SensorEntity
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SENSORS
 from homeassistant.core import HomeAssistant, callback
@@ -33,7 +34,7 @@ from .const import (
 )
 from .entity import BewardEntity
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
@@ -78,27 +79,23 @@ def _setup_entities(controller: BewardController, config: ConfigType) -> list:
     return entities
 
 
-class BewardSensor(BewardEntity):
+class BewardSensor(BewardEntity, SensorEntity):
     """A sensor implementation for Beward device."""
 
     def __init__(self, controller: BewardController, sensor_type: str):
         """Initialize a sensor for Beward device."""
         super().__init__(controller)
 
-        self._unique_id = f"{self._controller.unique_id}-{sensor_type}"
-        self._name = "{} {}".format(self._controller.name, SENSORS[sensor_type][0])
-        self._icon = ICON_SENSOR
-        self._device_class = SENSORS[sensor_type][2]
         self._sensor_type = sensor_type
 
-        self.entity_id = generate_entity_id(
-            ENTITY_ID_FORMAT, self._name, hass=self.hass
-        )
+        self._attr_unique_id = f"{self._controller.unique_id}-{sensor_type}"
+        self._attr_name = f"{self._controller.name} {SENSORS[sensor_type][0]}"
+        self._attr_icon = ICON_SENSOR
+        self._attr_device_class = SENSORS[sensor_type][2]
 
-    @property
-    def state(self) -> Union[None, str, int, float]:
-        """Return the state of the sensor."""
-        return self._state
+        self.entity_id = generate_entity_id(
+            ENTITY_ID_FORMAT, self._attr_name, hass=self.hass
+        )
 
     def _get_file_mtime(self, event) -> Optional[datetime]:
         """Return modification time of file or None."""
@@ -135,9 +132,13 @@ class BewardSensor(BewardEntity):
             if event_ts
             else None
         )
-        if self._state != state:
-            self._state = state
-            _LOGGER.debug('%s sensor state changed to "%s"', self._name, self._state)
+        if self._attr_native_value != state:
+            self._attr_native_value = state
+            _LOGGER.debug(
+                '%s sensor state changed to "%s"',
+                self._attr_name,
+                self._attr_native_value,
+            )
 
             if update_ha_state:
                 self.async_schedule_update_ha_state()
