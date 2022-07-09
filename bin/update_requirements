@@ -2,19 +2,22 @@
 """Helper script to update requirements."""
 import json
 import os
+import sys
 
 import requests
 
 ROOT = os.path.dirname(os.path.abspath(f"{__file__}/.."))
 
 PKG_PATH = PACKAGE = None
-for current_path, dirs, _ in os.walk(f"{ROOT}/custom_components"):
-    if current_path.find("__pycache__") != -1:
-        continue
-    for dname in dirs:
-        if dname != "__pycache__":
-            PACKAGE = dname
-PKG_PATH = f"{ROOT}/custom_components/{PACKAGE}"
+for fname in os.listdir(f"{ROOT}/custom_components"):
+    if fname != "__pycache__" and os.path.isdir(f"{ROOT}/custom_components/{fname}"):
+        PACKAGE = fname
+        PKG_PATH = f"{ROOT}/custom_components/{PACKAGE}"
+        break
+
+if not PACKAGE:
+    print("Package not found.")
+    sys.exit(1)
 
 
 def get_package(requre: str) -> str:
@@ -24,22 +27,22 @@ def get_package(requre: str) -> str:
 
 harequire = []
 request = requests.get(
-    "https://raw.githubusercontent.com/home-assistant/home-assistant/dev/setup.py"
+    "https://raw.githubusercontent.com/home-assistant/core/dev/requirements.txt"
 )
-request = request.text.split("REQUIRES = [")[1].split("]")[0].split("\n")
+request = request.text.split("\n")
 for req in request:
     if "=" in req:
-        harequire.append(get_package(req.split('"')[1]))
+        harequire.append(get_package(req))
 
 print(harequire)
 
-with open(f"{PKG_PATH}/manifest.json") as manifest:
+with open(f"{PKG_PATH}/manifest.json", encoding="utf8") as manifest:
     manifest = json.load(manifest)
     requirements = []
     for req in manifest["requirements"]:
         requirements.append(get_package(req))
     manifest["requirements"] = requirements
-with open(f"{ROOT}/requirements.txt") as requirements:
+with open(f"{ROOT}/requirements.txt", encoding="utf8") as requirements:
     tmp = requirements.readlines()
     requirements = []
     for req in tmp:
@@ -54,6 +57,6 @@ for req in manifest["requirements"]:
     pkg = get_package(req)
     if pkg in harequire:
         print(f"{pkg} in HA requirements, no need here.")
-print(json.dumps(manifest["requirements"], indent=4, sort_keys=True))
-with open(f"{PKG_PATH}/manifest.json", "w") as manifestfile:
-    manifestfile.write(json.dumps(manifest, indent=4, sort_keys=True))
+print(json.dumps(manifest["requirements"], indent=4))
+with open(f"{PKG_PATH}/manifest.json", "w", encoding="utf8") as manifestfile:
+    manifestfile.write(json.dumps(manifest, indent=4))

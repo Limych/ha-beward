@@ -1,0 +1,37 @@
+{
+    "config": {
+        "abort": {
+            "already_configured": "Device is already configured",
+            "no_mixed_config": "Already configured. Configuration via configuration.yaml are not compatible with configurations via UI."
+        },
+        "step": {
+            "user": {
+                "title": "Beward",
+                "description": "If you need help with the configuration have a look here: https://github.com/Limych/ha-beward",
+                "data": {
+                    "host": "Host IP",
+                    "port": "Port",
+                    "username": "Username",
+                    "password": "Password"
+                }
+            }
+        },
+        "error": {
+            "auth": "Host IP, Port, Username or Password is wrong."
+        }
+    },
+    "options": {
+        "abort": {
+            "no_options_available": "Configuration created via configuration.yaml cannot be changed via UI."
+        },
+        "step": {
+            "user": {
+                "data": {
+                    "cameras": "Cameras",
+                    "binary_sensors": "Binary Sensors",
+                    "sensors": "Timestamp Sensors"
+                }
+            }
+        }
+    }
+}

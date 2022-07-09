@@ -4,70 +4,73 @@ Component to integrate with Beward security devices.
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
+#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Creative Commons BY-NC-SA 4.0 International Public License
+#  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
+from __future__ import annotations
 
 import logging
 import os
 import tempfile
 from datetime import datetime
-from typing import Dict
+from time import sleep
+from typing import Any, Dict, Final, Mapping, Optional
 
 import beward
 import homeassistant.helpers.config_validation as cv
 import homeassistant.util.dt as dt_util
 import voluptuous as vol
-from beward.const import ALARM_MOTION, ALARM_SENSOR
-from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
-from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
-from homeassistant.components.sensor import DOMAIN as SENSOR
+from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
-    CONF_PASSWORD,
-    CONF_USERNAME,
+    ATTR_ATTRIBUTION,
+    CONF_BINARY_SENSORS,
     CONF_HOST,
     CONF_NAME,
+    CONF_PASSWORD,
     CONF_PORT,
-    CONF_BINARY_SENSORS,
     CONF_SENSORS,
-    ATTR_ATTRIBUTION,
+    CONF_USERNAME,
 )
-from homeassistant.exceptions import PlatformNotReady
-from homeassistant.helpers import discovery
+from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryNotReady
 from homeassistant.helpers.dispatcher import dispatcher_send
-from homeassistant.helpers.event import track_time_interval
 from homeassistant.helpers.storage import STORAGE_DIR
+from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
 
 from .const import (
-    CONF_STREAM,
     ALARMS_TO_EVENTS,
-    CONF_RTSP_PORT,
+    ATTRIBUTION,
+    BINARY_SENSORS,
+    CAMERAS,
     CONF_CAMERAS,
     CONF_FFMPEG_ARGUMENTS,
-    SUPPORT_LIB_URL,
-    DEVICE_CHECK_INTERVAL,
-    ATTR_DEVICE_ID,
-    CAMERAS,
-    BINARY_SENSORS,
+    CONF_RTSP_PORT,
+    CONF_STREAM,
+    DEFAULT_PORT,
+    DEFAULT_STREAM,
+    DOMAIN,
+    DOMAIN_YAML,
+    EVENT_ONLINE,
+    PLATFORMS,
     SENSORS,
+    STARTUP_MESSAGE,
+    SUPPORT_LIB_URL,
+    UNDO_UPDATE_LISTENER,
 )
 
-_LOGGER = logging.getLogger(__name__)
+_LOGGER: Final = logging.getLogger(__name__)
 
-# Base component constants
-DOMAIN = "beward"
-VERSION = "1.1.17"
-ISSUE_URL = "https://github.com/Limych/ha-beward/issues"
-ATTRIBUTION = "Data provided by Beward device."
-
-DEVICE_SCHEMA = vol.Schema(
+DEVICE_SCHEMA: Final = vol.Schema(
     {
         vol.Required(CONF_HOST): cv.string,
         vol.Required(CONF_USERNAME): cv.string,
         vol.Required(CONF_PASSWORD): cv.string,
         vol.Optional(CONF_NAME): cv.string,
-        vol.Optional(CONF_PORT, default=80): int,
+        vol.Optional(CONF_PORT, default=DEFAULT_PORT): int,
         vol.Optional(CONF_RTSP_PORT): int,
-        vol.Optional(CONF_STREAM, default=0): int,
+        vol.Optional(CONF_STREAM, default=DEFAULT_STREAM): int,
         vol.Optional(CONF_FFMPEG_ARGUMENTS, default=DEFAULT_ARGUMENTS): cv.string,
         vol.Optional(CONF_CAMERAS, default=list(CAMERAS)): vol.All(
             cv.ensure_list, [vol.In(CAMERAS)]
@@ -79,149 +82,182 @@ DEVICE_SCHEMA = vol.Schema(
     }
 )
 
-CONFIG_SCHEMA = vol.Schema(
+CONFIG_SCHEMA: Final = vol.Schema(
     {DOMAIN: vol.All(cv.ensure_list, [DEVICE_SCHEMA])}, extra=vol.ALLOW_EXTRA
 )
 
 
-def setup(hass, config):
-    """Set up component."""
-    conf = config.get(DOMAIN)
-    if conf is None:
+async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
+    """Set up this integration using YAML."""
+    # Print startup message
+    if DOMAIN not in hass.data:
+        _LOGGER.info(STARTUP_MESSAGE)
+        hass.data[DOMAIN] = {}
+
+    if DOMAIN not in config:
         return True
 
-    # Print startup message
-    _LOGGER.info("Version %s", VERSION)
-    _LOGGER.info(
-        "If you have ANY issues with this, please report them here: %s", ISSUE_URL
+    if DOMAIN not in hass.config.media_dirs:
+        hass.config.media_dirs[DOMAIN] = hass.config.path(STORAGE_DIR, DOMAIN)
+
+    hass.data[DOMAIN_YAML] = config[DOMAIN]
+    hass.async_create_task(
+        hass.config_entries.flow.async_init(
+            DOMAIN, context={"source": SOURCE_IMPORT}, data={}
+        )
     )
 
-    hass.data.setdefault(DOMAIN, {})
+    return True
 
-    for index, device_config in enumerate(config[DOMAIN]):
-        device_ip = device_config.get(CONF_HOST)
-        name = device_config.get(CONF_NAME)
-        username = device_config.get(CONF_USERNAME)
-        password = device_config.get(CONF_PASSWORD)
-        port = device_config.get(CONF_PORT)
-        rtsp_port = device_config.get(CONF_RTSP_PORT)
-        stream = device_config.get(CONF_STREAM)
-        ffmpeg_arguments = config.get(CONF_FFMPEG_ARGUMENTS)
-        cameras = device_config.get(CONF_CAMERAS)
-        binary_sensors = device_config.get(CONF_BINARY_SENSORS)
-        sensors = device_config.get(CONF_SENSORS)
 
-        _LOGGER.debug("Connecting to device %s", device_ip)
+async def async_update_listener(hass: HomeAssistant, config_entry: ConfigEntry):
+    """Handle options update."""
+    await hass.config_entries.async_reload(config_entry.entry_id)
 
-        try:
-            device = beward.Beward.factory(
-                device_ip,
-                username,
-                password,
-                port=port,
-                rtsp_port=rtsp_port,
-                stream=stream,
+
+async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Set up this integration using UI."""
+    hass.data[DOMAIN][entry.entry_id] = {}
+
+    # Add update listener for config entry changes (options)
+    undo_listener = entry.add_update_listener(async_update_listener)
+    hass.data[DOMAIN][entry.entry_id][UNDO_UPDATE_LISTENER] = undo_listener
+
+    if entry.source == SOURCE_IMPORT:
+        config = hass.data[DOMAIN_YAML]
+
+        for index, device_config in enumerate(config):
+            hass.data[DOMAIN][entry.entry_id][index] = await _async_setup_device(
+                hass, entry, device_config, index=index
             )
-        except ValueError as exc:
-            _LOGGER.error(exc)
-            if exc == 'Unknown device "None"':
-                msg = (
-                    "Device recognition error.<br />"
-                    "Please try restarting Home Assistant — it usually helps."
-                )
-            else:
-                msg = (
-                    "Error: {}<br />"
-                    'Please <a href="{}" target="_blank">contact the developers '
-                    "of the Beward library</a> to solve this problem."
-                    "".format(exc, SUPPORT_LIB_URL)
-                )
-            hass.components.persistent_notification.create(
-                msg,
-                title="Beward device Initialization Failure",
-                notification_id="beward_connection_error",
-            )
-            raise PlatformNotReady from exc
 
-        if device is None or not device.available:
-            if device is None:
-                err_msg = (
-                    "Authorization rejected by Beward device for %s@%s" % username,
-                    device_ip,
-                )
-            else:
-                err_msg = (
-                    "Could not connect to Beward device as %s@%s" % username,
-                    device_ip,
-                )
+    else:
+        config = entry.data.copy()
+        config.update(entry.options)
 
-            _LOGGER.error(err_msg)
-            hass.components.persistent_notification.create(
-                "Error: {}<br />"
-                "You will need to restart Home Assistant after fixing."
-                "".format(err_msg),
-                title="Beward device Configuration Failure",
-                notification_id="beward_connection_error",
-            )
-            raise PlatformNotReady
-
-        if name is None:
-            name = "Beward %s" % device.system_info.get("DeviceID", "#%d" % (index + 1))
-        if name in list(hass.data[DOMAIN]):
-            _LOGGER.error('Duplicate name! Beward device "%s" is already exists.', name)
-            continue
-
-        controller = BewardController(hass, device, name)
-        hass.data[DOMAIN][name] = controller
-        _LOGGER.info(
-            'Connected to Beward device "%s" as %s@%s',
-            controller.name,
-            username,
-            device_ip,
+        hass.data[DOMAIN][entry.entry_id][0] = await _async_setup_device(
+            hass, entry, config
         )
 
-        if cameras:
-            discovery.load_platform(
-                hass,
-                CAMERA,
-                DOMAIN,
-                {
-                    CONF_NAME: name,
-                    CONF_CAMERAS: cameras,
-                    CONF_FFMPEG_ARGUMENTS: ffmpeg_arguments,
-                },
-                config,
+    # Load platforms
+    for platform in PLATFORMS:
+        hass.async_add_job(
+            hass.config_entries.async_forward_entry_setup(entry, platform)
+        )
+
+    return len(hass.data[DOMAIN]) > 0
+
+
+async def _async_setup_device(
+    hass: HomeAssistant, entry: ConfigEntry, device_config: ConfigType, index: int = 0
+):
+    """Set up one device."""
+    device_ip = device_config.get(CONF_HOST)
+    name = device_config.get(CONF_NAME)
+    username = device_config.get(CONF_USERNAME)
+    unique_id = entry.entry_id + "_" + str(index + 1)
+
+    _LOGGER.debug("Connecting to device %s", device_ip)
+
+    try:
+
+        def get_device():
+            return beward.Beward.factory(
+                device_ip,
+                username,
+                device_config.get(CONF_PASSWORD),
+                port=device_config.get(CONF_PORT, DEFAULT_PORT),
+                rtsp_port=device_config.get(CONF_RTSP_PORT),
+                stream=device_config.get(CONF_STREAM, DEFAULT_STREAM),
             )
 
-        if binary_sensors:
-            discovery.load_platform(
-                hass,
-                BINARY_SENSOR,
-                DOMAIN,
-                {CONF_NAME: name, CONF_BINARY_SENSORS: binary_sensors},
-                config,
+        device = await hass.async_add_executor_job(get_device)
+    except ValueError as exc:
+        _LOGGER.error(exc)
+        if exc == 'Unknown device "None"':
+            msg = (
+                "Device recognition error.<br />"
+                "Please try restarting Home Assistant&nbsp;— it usually helps."
             )
-
-        if sensors:
-            discovery.load_platform(
-                hass, SENSOR, DOMAIN, {CONF_NAME: name, CONF_SENSORS: sensors}, config
+        else:
+            msg = (
+                f"Error: {exc}<br />"
+                f'Please <a href="{SUPPORT_LIB_URL}" target="_blank">contact the developers '
+                "of the Beward library</a> to solve this problem."
             )
+        hass.components.persistent_notification.create(
+            msg,
+            title="Beward device Initialization Failure",
+            notification_id="beward_connection_error",
+        )
+        raise ConfigEntryNotReady from exc
 
-    if not hass.data[DOMAIN]:
-        return False
+    if device is None or not await hass.async_add_executor_job(
+        lambda: device.available
+    ):
+        if device is None:
+            err_msg = (
+                f"Authorization rejected by Beward device for {username}@{device_ip}"
+            )
+        else:
+            err_msg = f"Could not connect to Beward device as {username}@{device_ip}"
+        _LOGGER.error(err_msg)
+        raise ConfigEntryNotReady
 
-    return True
+    sys_info = await hass.async_add_executor_job(lambda: device.system_info)
+    device_id = sys_info.get("DeviceID", device.host)
+
+    if name is None:
+        name = f"Beward {sys_info.get('DeviceID', unique_id)}"
+
+    controller = BewardController(hass, device_id, device, name)
+    _LOGGER.info(
+        'Connected to Beward device "%s" as %s@%s',
+        controller.name,
+        username,
+        device_ip,
+    )
+
+    return controller
+
+
+async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+    """Handle removal of an entry."""
+    unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unloaded:
+        cfg = hass.data[DOMAIN][entry.entry_id]  # type: dict
+        cfg[UNDO_UPDATE_LISTENER]()
+        del cfg[UNDO_UPDATE_LISTENER]
+
+        for device in cfg.values():  # type: BewardController
+            del device
+
+        del hass.data[DOMAIN][entry.entry_id]
+
+    return unloaded
+
+
+async def async_reload_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Reload config entry."""
+    await async_unload_entry(hass, entry)
+    await async_setup_entry(hass, entry)
 
 
 class BewardController:
     """Beward device controller."""
 
-    def __init__(self, hass, device: beward.BewardGeneric, name: str):
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        unique_id: Optional[str],
+        device: beward.BewardGeneric,
+        name: str,
+    ):
         """Initialize configured device."""
         self.hass = hass
+        self.name = name
         self._device = device
-        self._name = name
-        self._unique_id = self._device.system_info.get("DeviceID", self._device.host)
+        self._unique_id = unique_id
 
         self._available = True
         self.event_timestamp: Dict[str, datetime] = {}
@@ -229,24 +265,23 @@ class BewardController:
 
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
-        self._device.listen_alarms(alarms=(ALARM_MOTION, ALARM_SENSOR))
+        self._device.listen_alarms(alarms=ALARMS_TO_EVENTS.keys())
 
-        track_time_interval(hass, self._update_available, DEVICE_CHECK_INTERVAL)
+    def __del__(self):
+        """Destructor."""
+        # Remove device alarms handler.
+        self._device.remove_alarms_handler(self._alarms_handler)
+        sleep(0.1)
 
     def service_signal(self, service):
         """Encode service and identifier into signal."""
-        signal = "{}_{}_{}".format(DOMAIN, service, self.unique_id.replace(".", "_"))
+        signal = f"{DOMAIN}_{service}_{slugify(self.unique_id)}"
         return signal
 
     @property
     def unique_id(self):
         """Return a device unique ID."""
         return self._unique_id
-
-    @property
-    def name(self):
-        """Get custom device name."""
-        return self._name
 
     @property
     def device(self):
@@ -258,31 +293,27 @@ class BewardController:
         """Return True if device is available."""
         return self._available
 
-    def _update_available(self, _=None):
-        available = self._device.available
-        if self._available != available:
-            self._available = available
-            _LOGGER.warning(
-                'Device "%s" is %s',
-                self._name,
-                "reconnected" if available else "unavailable",
-            )
-
-            dispatcher_send(self.hass, self.service_signal("update"))
+    @property
+    def device_info(self):
+        """Return the device info."""
+        return {
+            "identifiers": {(DOMAIN, self.unique_id)},
+            "name": self.name,
+            "manufacturer": "Beward",
+            "model": self.device.system_info.get("DeviceModel"),
+        }
 
     @property
-    def device_state_attributes(self):
-        """Return the state attributes."""
-        attrs = {
+    def extra_state_attributes(self) -> Optional[Mapping[str, Any]]:
+        """Return entity specific state attributes."""
+        return {
             ATTR_ATTRIBUTION: ATTRIBUTION,
-            ATTR_DEVICE_ID: self.unique_id,
         }
-        return attrs
 
     def history_image_path(self, event: str):
         """Return the path to saved image."""
         file_name = slugify(f"{self.name} last {event}") + ".jpg"
-        return self.hass.config.path(STORAGE_DIR, DOMAIN, file_name)
+        return self.hass.config.path(self.hass.config.media_dirs[DOMAIN], file_name)
 
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
         """Call Beward to refresh information."""
@@ -296,9 +327,12 @@ class BewardController:
         image_path = self.history_image_path(event)
         tmp_filename = ""
         image_dir = os.path.split(image_path)[0]
+
         _LOGGER.debug("Save camera photo to %s", image_path)
+
         if not os.path.exists(image_dir):
             os.makedirs(image_dir, mode=0o755)
+
         try:
             # Modern versions of Python tempfile create
             # this file with mode 0o600
@@ -307,15 +341,19 @@ class BewardController:
             ) as fdesc:
                 fdesc.write(image)
                 tmp_filename = fdesc.name
+
             os.chmod(tmp_filename, 0o644)
             os.replace(tmp_filename, image_path)
+
         except OSError as error:
             _LOGGER.exception("Saving image file failed: %s", image_path)
             raise error
+
         finally:
             if os.path.exists(tmp_filename):
                 try:
                     os.remove(tmp_filename)
+
                 except OSError as err:
                     # If we are cleaning up then something else
                     # went wrong, so we should suppress likely
@@ -325,15 +363,29 @@ class BewardController:
     def _alarms_handler(self, device, timestamp: datetime, alarm: str, state: bool):
         """Handle device's alarm events."""
         timestamp = dt_util.as_local(dt_util.as_utc(timestamp))
+
         _LOGGER.debug(
             'Handle alarm "%s". State %s at %s', alarm, state, timestamp.isoformat()
         )
-        if alarm in (ALARM_MOTION, ALARM_SENSOR) and device == self._device:
+
+        if alarm in ALARMS_TO_EVENTS and device == self._device:
             event = ALARMS_TO_EVENTS[alarm]
-            self.event_state[event] = state
-            if state:
-                self.event_timestamp[event] = timestamp
-                if isinstance(self._device, beward.BewardCamera):
-                    self._cache_image(event, self._device.live_image)
+
+            if event == EVENT_ONLINE:
+                if self._available != state:
+                    _LOGGER.warning(
+                        'Device "%s" is %s',
+                        self.name,
+                        "reconnected" if state else "unavailable",
+                    )
+
+                self._available = state
+
+            else:
+                self.event_state[event] = state
+                if state:
+                    self.event_timestamp[event] = timestamp
+                    if isinstance(self._device, beward.BewardCamera):
+                        self._cache_image(event, self._device.live_image)
 
             dispatcher_send(self.hass, self.service_signal("update"))

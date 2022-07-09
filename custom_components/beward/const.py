@@ -1,52 +1,88 @@
 """Constants for Beward component."""
-from datetime import timedelta
-from typing import Dict
+#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Creative Commons BY-NC-SA 4.0 International Public License
+#  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
+from __future__ import annotations
 
-from beward.const import ALARM_MOTION, ALARM_SENSOR
+from typing import Dict, Final
+
+from beward.const import ALARM_MOTION, ALARM_ONLINE, ALARM_SENSOR
 from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_MOTION,
     DEVICE_CLASS_CONNECTIVITY,
+    DEVICE_CLASS_MOTION,
 )
+from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
+from homeassistant.components.camera import DOMAIN as CAMERA
+from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.const import DEVICE_CLASS_TIMESTAMP
 
-SUPPORT_LIB_URL = "https://github.com/Limych/py-beward/issues/new/choose"
+# Base component constants
+NAME: Final = "Beward Integration"
+DOMAIN: Final = "beward"
+VERSION: Final = "1.1.20-alpha"
+ATTRIBUTION: Final = "Data provided by Beward device."
+ISSUE_URL: Final = "https://github.com/Limych/ha-beward/issues"
+SUPPORT_LIB_URL: Final = "https://github.com/Limych/py-beward/issues/new/choose"
+DOMAIN_YAML: Final = f"{DOMAIN}_yaml"
 
-CONF_EVENTS = "events"
-CONF_RTSP_PORT = "rtsp_port"
-CONF_STREAM = "stream"
-CONF_FFMPEG_ARGUMENTS = "ffmpeg_arguments"
-CONF_CAMERAS = "cameras"
+STARTUP_MESSAGE: Final = f"""
+-------------------------------------------------------------------
+{NAME}
+Version: {VERSION}
+This is a custom integration!
+If you have ANY issues with this you need to open an issue here:
+{ISSUE_URL}
+-------------------------------------------------------------------
+"""
 
-EVENT_ONLINE = "online"
-EVENT_MOTION = "motion"
-EVENT_DING = "ding"
+# Icons
+ICON_SENSOR: Final = "mdi:history"
 
-ALARMS_TO_EVENTS = {
+# Platforms
+PLATFORMS: Final = [CAMERA, BINARY_SENSOR, SENSOR]
+
+# Configuration and options
+CONF_EVENTS: Final = "events"
+CONF_RTSP_PORT: Final = "rtsp_port"
+CONF_STREAM: Final = "stream"
+CONF_FFMPEG_ARGUMENTS: Final = "ffmpeg_arguments"
+CONF_CAMERAS: Final = "cameras"
+
+UNDO_UPDATE_LISTENER: Final = "undo_update_listener"
+
+# Defaults
+DEFAULT_PORT: Final = 80
+DEFAULT_STREAM: Final = 0
+
+# Events
+EVENT_ONLINE: Final = "online"
+EVENT_MOTION: Final = "motion"
+EVENT_DING: Final = "ding"
+#
+ALARMS_TO_EVENTS: Final = {
+    ALARM_ONLINE: EVENT_ONLINE,
     ALARM_MOTION: EVENT_MOTION,
     ALARM_SENSOR: EVENT_DING,
 }
 
-ATTR_DEVICE_ID = "device_id"
 
-CAT_DOORBELL = "doorbell"
-CAT_CAMERA = "camera"
+CAT_DOORBELL: Final = "doorbell"
+CAT_CAMERA: Final = "camera"
 
-DEVICE_CHECK_INTERVAL = timedelta(seconds=15)
+CAMERA_LIVE: Final = "live"
+CAMERA_LAST_MOTION: Final = "last_motion"
+CAMERA_LAST_DING: Final = "last_ding"
 
-CAMERA_LIVE = "live"
-CAMERA_LAST_MOTION = "last_motion"
-CAMERA_LAST_DING = "last_ding"
+CAMERA_NAME_LIVE: Final = "{} Live"
+CAMERA_NAME_LAST_MOTION: Final = "{} Last Motion"
+CAMERA_NAME_LAST_DING: Final = "{} Last Ding"
 
-CAMERA_NAME_LIVE = "{} Live"
-CAMERA_NAME_LAST_MOTION = "{} Last Motion"
-CAMERA_NAME_LAST_DING = "{} Last Ding"
-
-SENSOR_LAST_ACTIVITY = "last_activity"
-SENSOR_LAST_MOTION = "last_motion"
-SENSOR_LAST_DING = "last_ding"
+SENSOR_LAST_ACTIVITY: Final = "last_activity"
+SENSOR_LAST_MOTION: Final = "last_motion"
+SENSOR_LAST_DING: Final = "last_ding"
 
 # Camera types are defined like: name template, device class, device event
-CAMERAS: Dict[str, list] = {
+CAMERAS: Final[Dict[str, list]] = {
     CAMERA_LIVE: [CAMERA_NAME_LIVE, [CAT_DOORBELL, CAT_CAMERA], None],
     CAMERA_LAST_MOTION: [
         CAMERA_NAME_LAST_MOTION,
@@ -57,25 +93,23 @@ CAMERAS: Dict[str, list] = {
 }
 
 # Sensor types: name, category, class
-BINARY_SENSORS: Dict[str, list] = {
+BINARY_SENSORS: Final[Dict[str, list]] = {
     EVENT_DING: ["Ding", [CAT_DOORBELL], None],
     EVENT_MOTION: ["Motion", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION],
     EVENT_ONLINE: ["Online", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_CONNECTIVITY],
 }
 
 # Sensor types: name, category, class, icon
-SENSORS = {
+SENSORS: Final = {
     SENSOR_LAST_ACTIVITY: [
         "Last Activity",
         [CAT_DOORBELL, CAT_CAMERA],
         DEVICE_CLASS_TIMESTAMP,
-        "history",
     ],
     SENSOR_LAST_MOTION: [
         "Last Motion",
         [CAT_DOORBELL, CAT_CAMERA],
         DEVICE_CLASS_TIMESTAMP,
-        "history",
     ],
-    SENSOR_LAST_DING: ["Last Ding", [CAT_DOORBELL], DEVICE_CLASS_TIMESTAMP, "history"],
+    SENSOR_LAST_DING: ["Last Ding", [CAT_DOORBELL], DEVICE_CLASS_TIMESTAMP],
 }

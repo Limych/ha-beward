@@ -2,23 +2,39 @@
 name: Feature request
 about: Suggest an idea for this project
 title: ''
-labels: Feature Request
+labels: 'enhancement'
 assignees: ''
 
 ---
 
-## Is your feature request related to a problem? Please describe.
+<!-- Please READ THIS FIRST
 
-_A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]_
+DO NOT DELETE ANY TEXT from this template! Otherwise, your issue may be closed without comment.
 
-## Describe the solution you'd like
+Always check if there is a similar feature request already do avoid duplicates.
+If there is a similar FR already, please add comments if you have other thoughts about the solution.
 
-_A clear and concise description of what you want to happen._
+-->
 
-## Describe alternatives you've considered
+**Is your feature request related to a problem? Please describe.**
+<!--
+  A clear and concise description of what the problem is. Ex. I'm always frustrated when [...]
+-->
 
-_A clear and concise description of any alternative solutions or features you've considered._
 
-## Additional context
+**Describe the solution you'd like**
+<!--
+  A clear and concise description of what you want to happen.
+-->
 
-_Add any other context or screenshots about the feature request here._
+
+**Describe alternatives you've considered**
+<!--
+  A clear and concise description of any alternative solutions or features you've considered.
+-->
+
+
+**Additional context**
+<!--
+  Add any other context or screenshots about the feature request here.
+-->
