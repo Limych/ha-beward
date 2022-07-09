@@ -97,6 +97,9 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     if DOMAIN not in config:
         return True
 
+    if DOMAIN not in hass.config.media_dirs:
+        hass.config.media_dirs[DOMAIN] = hass.config.path(STORAGE_DIR, DOMAIN)
+
     hass.data[DOMAIN_YAML] = config[DOMAIN]
     hass.async_create_task(
         hass.config_entries.flow.async_init(
@@ -310,7 +313,7 @@ class BewardController:
     def history_image_path(self, event: str):
         """Return the path to saved image."""
         file_name = slugify(f"{self.name} last {event}") + ".jpg"
-        return self.hass.config.path(STORAGE_DIR, DOMAIN, file_name)
+        return self.hass.config.path(self.hass.config.media_dirs[DOMAIN], file_name)
 
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
         """Call Beward to refresh information."""

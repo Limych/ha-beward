@@ -1,7 +1,7 @@
 # pylint: disable=protected-access,redefined-outer-name
 """Test beward setup process."""
-
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
@@ -20,9 +20,33 @@ from .const import MOCK_CONFIG, MOCK_YAML_CONFIG
 
 async def test_async_setup(hass: HomeAssistant):
     """Test a successful setup component."""
+    assert DOMAIN not in hass.config.media_dirs
+
     with assert_setup_component(1, DOMAIN):
         await async_setup_component(hass, DOMAIN, {DOMAIN: MOCK_YAML_CONFIG})
         await hass.async_block_till_done()
+
+        assert DOMAIN in hass.config.media_dirs
+        assert hass.config.media_dirs[DOMAIN] == hass.config.path(STORAGE_DIR, DOMAIN)
+
+    await hass.async_start()
+    await hass.async_block_till_done()
+
+
+async def test_async_setup_2(hass: HomeAssistant):
+    """Test a successful setup component."""
+    test_path = "/test_path"
+
+    assert DOMAIN not in hass.config.media_dirs
+
+    hass.config.media_dirs[DOMAIN] = test_path
+
+    with assert_setup_component(1, DOMAIN):
+        await async_setup_component(hass, DOMAIN, {DOMAIN: MOCK_YAML_CONFIG})
+        await hass.async_block_till_done()
+
+        assert DOMAIN in hass.config.media_dirs
+        assert hass.config.media_dirs[DOMAIN] == test_path
 
     await hass.async_start()
     await hass.async_block_till_done()
