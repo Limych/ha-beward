@@ -230,7 +230,7 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         del cfg[UNDO_UPDATE_LISTENER]
 
         for device in cfg.values():  # type: BewardController
-            device.__del__()
+            del device
 
         del hass.data[DOMAIN][entry.entry_id]
 
