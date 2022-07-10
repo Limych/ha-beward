@@ -1,4 +1,4 @@
-av~=9.2
 beward~=1.1
-ha-ffmpeg==3.0.2
+ha-av~=9.2
+ha-ffmpeg~=3.0
 homeassistant>=2022.7.0
