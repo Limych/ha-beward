@@ -313,7 +313,12 @@ class BewardController:
     def history_image_path(self, event: str):
         """Return the path to saved image."""
         file_name = slugify(f"{self.name} last {event}") + ".jpg"
-        return self.hass.config.path(self.hass.config.media_dirs[DOMAIN], file_name)
+        return self.hass.config.path(
+            self.hass.config.media_dirs.get(
+                DOMAIN, self.hass.config.path(STORAGE_DIR, DOMAIN)
+            ),
+            file_name,
+        )
 
     def set_event_state(self, timestamp: datetime, event: str, state: bool):
         """Call Beward to refresh information."""
