@@ -21,7 +21,7 @@ import beward
 from haffmpeg.camera import CameraMjpeg
 
 from homeassistant.components.camera import SUPPORT_STREAM, Camera as CameraEntity
-from homeassistant.components.ffmpeg import DATA_FFMPEG
+from homeassistant.components.ffmpeg import DATA_FFMPEG, FFmpegManager
 from homeassistant.components.local_file.camera import LocalFile
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant
@@ -167,7 +167,7 @@ class BewardLiveCamera(BewardEntity, CameraEntity):
         if not self._stream_url:
             return None
 
-        ffmpeg_manager = self.hass.data[DATA_FFMPEG]  # type: FFmpegManager
+        ffmpeg_manager: FFmpegManager = self.hass.data[DATA_FFMPEG]
 
         # pylint: disable=no-value-for-parameter
         stream = CameraMjpeg(ffmpeg_manager.binary)
