@@ -7,8 +7,8 @@ from __future__ import annotations
 from typing import Final, Optional
 
 import beward
-import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
+
 from homeassistant import config_entries
 from homeassistant.const import (
     CONF_BINARY_SENSORS,
@@ -19,6 +19,7 @@ from homeassistant.const import (
     CONF_USERNAME,
 )
 from homeassistant.core import callback
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.typing import ConfigType
 
 from .const import (  # pylint: disable=unused-import

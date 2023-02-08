@@ -17,8 +17,8 @@
 # pytest includes fixtures OOB which you can use as defined on this page)
 from unittest.mock import patch
 
-import pytest
 from beward import Beward, BewardGeneric
+import pytest
 
 from tests.const import MOCK_HOST, MOCK_PASSWORD, MOCK_PORT, MOCK_USERNAME
 

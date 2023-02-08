@@ -1,5 +1,4 @@
-"""
-Integration of the JQ-300/200/100 indoor air quality meter.
+"""Integration of the JQ-300/200/100 indoor air quality meter.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
@@ -9,9 +8,10 @@ https://github.com/Limych/ha-beward
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
-import logging
 from abc import ABC
-from typing import Any, Final, Mapping, Optional
+from collections.abc import Mapping
+import logging
+from typing import Any, Final, Optional
 
 from homeassistant.const import EVENT_HOMEASSISTANT_START
 from homeassistant.core import callback

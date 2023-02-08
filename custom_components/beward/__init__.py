@@ -1,5 +1,4 @@
-"""
-Component to integrate with Beward security devices.
+"""Component to integrate with Beward security devices.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
@@ -9,17 +8,17 @@ https://github.com/Limych/ha-beward
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
+from collections.abc import Mapping
+from datetime import datetime
 import logging
 import os
 import tempfile
-from datetime import datetime
 from time import sleep
-from typing import Any, Dict, Final, Mapping, Optional
+from typing import Any, Dict, Final, Optional
 
 import beward
-import homeassistant.helpers.config_validation as cv
-import homeassistant.util.dt as dt_util
 import voluptuous as vol
+
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
@@ -34,10 +33,12 @@ from homeassistant.const import (
 )
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
+import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.dispatcher import dispatcher_send
 from homeassistant.helpers.storage import STORAGE_DIR
 from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
+import homeassistant.util.dt as dt_util
 
 from .const import (
     ALARMS_TO_EVENTS,

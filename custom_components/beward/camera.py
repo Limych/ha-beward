@@ -1,5 +1,4 @@
-"""
-Support for viewing the camera feed from a Beward devices.
+"""Support for viewing the camera feed from a Beward devices.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
@@ -10,19 +9,19 @@ https://github.com/Limych/ha-beward
 from __future__ import annotations
 
 import asyncio
+from asyncio import run_coroutine_threadsafe
 import datetime
 import logging
-from asyncio import run_coroutine_threadsafe
 from typing import Final, Optional
 
 import aiohttp
+from aiohttp.abc import StreamResponse
 import async_timeout
 import beward
-from aiohttp.abc import StreamResponse
 from haffmpeg.camera import CameraMjpeg
-from homeassistant.components.camera import SUPPORT_STREAM
-from homeassistant.components.camera import Camera as CameraEntity
-from homeassistant.components.ffmpeg import DATA_FFMPEG, FFmpegManager
+
+from homeassistant.components.camera import SUPPORT_STREAM, Camera as CameraEntity
+from homeassistant.components.ffmpeg import DATA_FFMPEG
 from homeassistant.components.local_file.camera import LocalFile
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.core import HomeAssistant

@@ -4,19 +4,20 @@
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
-import logging
 from datetime import datetime
+import logging
 from os import path
 from typing import Final, Optional
 
 import beward
-import homeassistant.util.dt as dt_util
+
 from homeassistant.components.sensor import ENTITY_ID_FORMAT, SensorEntity
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_SENSORS
 from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.entity import generate_entity_id
 from homeassistant.helpers.typing import ConfigType
+import homeassistant.util.dt as dt_util
 
 from . import BewardController
 from .const import (

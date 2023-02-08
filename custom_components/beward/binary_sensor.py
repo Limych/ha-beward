@@ -8,6 +8,7 @@ import logging
 from typing import Final
 
 import beward
+
 from homeassistant.components.binary_sensor import ENTITY_ID_FORMAT, BinarySensorEntity
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_BINARY_SENSORS
