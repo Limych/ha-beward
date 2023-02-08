@@ -7,11 +7,12 @@ from __future__ import annotations
 from typing import Dict, Final
 
 from beward.const import ALARM_MOTION, ALARM_ONLINE, ALARM_SENSOR
+
 from homeassistant.components.binary_sensor import (
     DEVICE_CLASS_CONNECTIVITY,
     DEVICE_CLASS_MOTION,
+    DOMAIN as BINARY_SENSOR,
 )
-from homeassistant.components.binary_sensor import DOMAIN as BINARY_SENSOR
 from homeassistant.components.camera import DOMAIN as CAMERA
 from homeassistant.components.sensor import DOMAIN as SENSOR
 from homeassistant.const import DEVICE_CLASS_TIMESTAMP
@@ -19,7 +20,7 @@ from homeassistant.const import DEVICE_CLASS_TIMESTAMP
 # Base component constants
 NAME: Final = "Beward Integration"
 DOMAIN: Final = "beward"
-VERSION: Final = "1.1.25"
+VERSION: Final = "1.1.26-alpha"
 ATTRIBUTION: Final = "Data provided by Beward device."
 ISSUE_URL: Final = "https://github.com/Limych/ha-beward/issues"
 SUPPORT_LIB_URL: Final = "https://github.com/Limych/py-beward/issues/new/choose"

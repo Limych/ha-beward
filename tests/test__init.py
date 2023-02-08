@@ -1,8 +1,5 @@
 # pylint: disable=protected-access,redefined-outer-name
 """Test beward setup process."""
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import STORAGE_DIR
-from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     assert_setup_component,
@@ -14,6 +11,9 @@ from custom_components.beward import (
     async_unload_entry,
 )
 from custom_components.beward.const import DOMAIN, UNDO_UPDATE_LISTENER
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import STORAGE_DIR
+from homeassistant.setup import async_setup_component
 
 from .const import MOCK_CONFIG, MOCK_YAML_CONFIG
 
