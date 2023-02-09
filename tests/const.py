@@ -30,3 +30,6 @@ MOCK_OPTIONS: Final = {
 }
 MOCK_YAML_CONFIG = MOCK_CONFIG.copy()
 MOCK_YAML_CONFIG.update(MOCK_OPTIONS)
+
+MOCK_DEVICE_ID: Final = "test_device_37354"
+MOCK_DEVICE_NAME: Final = "Test Device 37354"

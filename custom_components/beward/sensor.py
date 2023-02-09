@@ -1,5 +1,5 @@
 """Sensor platform for Beward devices."""
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2023, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
@@ -47,16 +47,14 @@ async def async_setup_entry(
     if entry.source == SOURCE_IMPORT:
         config = hass.data[DOMAIN_YAML]
         for index, device_config in enumerate(config):
-            controller = hass.data[DOMAIN][entry.entry_id][
-                index
-            ]  # type: BewardController
+            controller: BewardController = hass.data[DOMAIN][entry.entry_id][index]
             entities.extend(_setup_entities(controller, device_config))
 
     else:
         config = entry.data.copy()
         config.update(entry.options)
         _LOGGER.debug(hass.data[DOMAIN])
-        controller = hass.data[DOMAIN][entry.entry_id][0]  # type: BewardController
+        controller: BewardController = hass.data[DOMAIN][entry.entry_id][0]
         entities.extend(_setup_entities(controller, config))
 
     if entities:
@@ -128,11 +126,7 @@ class BewardSensor(BewardEntity, SensorEntity):
             if ding_ts is not None and event_ts is not None and ding_ts > event_ts:
                 event_ts = ding_ts
 
-        state = (
-            dt_util.as_local(event_ts.replace(microsecond=0)).isoformat()
-            if event_ts
-            else None
-        )
+        state = dt_util.as_local(event_ts.replace(microsecond=0)) if event_ts else None
         if self._attr_native_value != state:
             self._attr_native_value = state
             _LOGGER.debug(
