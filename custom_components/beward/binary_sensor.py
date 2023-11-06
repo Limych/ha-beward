@@ -23,7 +23,7 @@ from .const import (
     CAT_DOORBELL,
     DOMAIN,
     DOMAIN_YAML,
-    EVENT_ONLINE,
+    BewardDeviceEvent,
 )
 from .entity import BewardEntity
 
@@ -91,7 +91,9 @@ class BewardBinarySensor(BewardEntity, BinarySensorEntity):
     @property
     def available(self) -> bool:
         """Return True if entity is available."""
-        return self._sensor_type == EVENT_ONLINE or self._controller.available
+        return (
+            self._sensor_type == BewardDeviceEvent.ONLINE or self._controller.available
+        )
 
     async def async_update(self) -> None:
         """Get the latest data and updates the state."""
@@ -102,7 +104,7 @@ class BewardBinarySensor(BewardEntity, BinarySensorEntity):
         """Get the latest data and updates the state if necessary."""
         state = (
             self._controller.available
-            if self._sensor_type == EVENT_ONLINE
+            if self._sensor_type == BewardDeviceEvent.ONLINE
             else self._controller.event_state.get(self._sensor_type, False)
         )
         if self._attr_is_on != state:

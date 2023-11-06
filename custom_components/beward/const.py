@@ -1,21 +1,20 @@
 """Constants for Beward component."""
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+#  Copyright (c) 2019-2023, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Dict, Final
 
 from beward.const import ALARM_MOTION, ALARM_ONLINE, ALARM_SENSOR
 
 from homeassistant.components.binary_sensor import (
-    DEVICE_CLASS_CONNECTIVITY,
-    DEVICE_CLASS_MOTION,
     DOMAIN as BINARY_SENSOR,
+    BinarySensorDeviceClass,
 )
 from homeassistant.components.camera import DOMAIN as CAMERA
-from homeassistant.components.sensor import DOMAIN as SENSOR
-from homeassistant.const import DEVICE_CLASS_TIMESTAMP
+from homeassistant.components.sensor import DOMAIN as SENSOR, SensorDeviceClass
 
 # Base component constants
 NAME: Final = "Beward Integration"
@@ -55,17 +54,32 @@ UNDO_UPDATE_LISTENER: Final = "undo_update_listener"
 DEFAULT_PORT: Final = 80
 DEFAULT_STREAM: Final = 0
 
-# Events
-EVENT_ONLINE: Final = "online"
-EVENT_MOTION: Final = "motion"
-EVENT_DING: Final = "ding"
-#
-ALARMS_TO_EVENTS: Final = {
-    ALARM_ONLINE: EVENT_ONLINE,
-    ALARM_MOTION: EVENT_MOTION,
-    ALARM_SENSOR: EVENT_DING,
-}
 
+# Events
+class BewardDeviceEvent(StrEnum):
+    """Events class for Beward devices."""
+
+    # Device is online
+    ONLINE = "online"
+
+    # Motion detected
+    MOTION = "motion"
+
+    # Ding button pressed
+    DING = "ding"
+
+
+# EVENT_* below are DEPRECATED
+# use the BewardDeviceEvent enum instead.
+EVENT_ONLINE: Final = BewardDeviceEvent.ONLINE
+EVENT_MOTION: Final = BewardDeviceEvent.MOTION
+EVENT_DING: Final = BewardDeviceEvent.DING
+
+ALARMS_TO_EVENTS: Final = {
+    ALARM_ONLINE: BewardDeviceEvent.ONLINE,
+    ALARM_MOTION: BewardDeviceEvent.MOTION,
+    ALARM_SENSOR: BewardDeviceEvent.DING,
+}
 
 CAT_DOORBELL: Final = "doorbell"
 CAT_CAMERA: Final = "camera"
@@ -88,16 +102,24 @@ CAMERAS: Final[Dict[str, list]] = {
     CAMERA_LAST_MOTION: [
         CAMERA_NAME_LAST_MOTION,
         [CAT_DOORBELL, CAT_CAMERA],
-        EVENT_MOTION,
+        BewardDeviceEvent.MOTION,
     ],
-    CAMERA_LAST_DING: [CAMERA_NAME_LAST_DING, [CAT_DOORBELL], EVENT_DING],
+    CAMERA_LAST_DING: [CAMERA_NAME_LAST_DING, [CAT_DOORBELL], BewardDeviceEvent.DING],
 }
 
 # Sensor types: name, category, class
 BINARY_SENSORS: Final[Dict[str, list]] = {
-    EVENT_DING: ["Ding", [CAT_DOORBELL], None],
-    EVENT_MOTION: ["Motion", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_MOTION],
-    EVENT_ONLINE: ["Online", [CAT_DOORBELL, CAT_CAMERA], DEVICE_CLASS_CONNECTIVITY],
+    BewardDeviceEvent.DING: ["Ding", [CAT_DOORBELL], None],
+    BewardDeviceEvent.MOTION: [
+        "Motion",
+        [CAT_DOORBELL, CAT_CAMERA],
+        BinarySensorDeviceClass.MOTION,
+    ],
+    BewardDeviceEvent.ONLINE: [
+        "Online",
+        [CAT_DOORBELL, CAT_CAMERA],
+        BinarySensorDeviceClass.CONNECTIVITY,
+    ],
 }
 
 # Sensor types: name, category, class, icon
@@ -105,12 +127,12 @@ SENSORS: Final = {
     SENSOR_LAST_ACTIVITY: [
         "Last Activity",
         [CAT_DOORBELL, CAT_CAMERA],
-        DEVICE_CLASS_TIMESTAMP,
+        SensorDeviceClass.TIMESTAMP,
     ],
     SENSOR_LAST_MOTION: [
         "Last Motion",
         [CAT_DOORBELL, CAT_CAMERA],
-        DEVICE_CLASS_TIMESTAMP,
+        SensorDeviceClass.TIMESTAMP,
     ],
-    SENSOR_LAST_DING: ["Last Ding", [CAT_DOORBELL], DEVICE_CLASS_TIMESTAMP],
+    SENSOR_LAST_DING: ["Last Ding", [CAT_DOORBELL], SensorDeviceClass.TIMESTAMP],
 }

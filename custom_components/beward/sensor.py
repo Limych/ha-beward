@@ -25,13 +25,12 @@ from .const import (
     CAT_DOORBELL,
     DOMAIN,
     DOMAIN_YAML,
-    EVENT_DING,
-    EVENT_MOTION,
     ICON_SENSOR,
     SENSOR_LAST_ACTIVITY,
     SENSOR_LAST_DING,
     SENSOR_LAST_MOTION,
     SENSORS,
+    BewardDeviceEvent,
 )
 from .entity import BewardEntity
 
@@ -81,6 +80,8 @@ def _setup_entities(controller: BewardController, config: ConfigType) -> list:
 class BewardSensor(BewardEntity, SensorEntity):
     """A sensor implementation for Beward device."""
 
+    _attr_icon: str = ICON_SENSOR
+
     def __init__(self, controller: BewardController, sensor_type: str):
         """Initialize a sensor for Beward device."""
         super().__init__(controller)
@@ -89,7 +90,6 @@ class BewardSensor(BewardEntity, SensorEntity):
 
         self._attr_unique_id = f"{self._controller.unique_id}-{sensor_type}"
         self._attr_name = f"{self._controller.name} {SENSORS[sensor_type][0]}"
-        self._attr_icon = ICON_SENSOR
         self._attr_device_class = SENSORS[sensor_type][2]
 
         self.entity_id = generate_entity_id(
@@ -115,14 +115,14 @@ class BewardSensor(BewardEntity, SensorEntity):
         """Get the latest data and updates the state."""
         event_ts = None
         if self._sensor_type == SENSOR_LAST_MOTION:
-            event_ts = self._get_event_timestamp(EVENT_MOTION)
+            event_ts = self._get_event_timestamp(BewardDeviceEvent.MOTION)
 
         elif self._sensor_type == SENSOR_LAST_DING:
-            event_ts = self._get_event_timestamp(EVENT_DING)
+            event_ts = self._get_event_timestamp(BewardDeviceEvent.DING)
 
         elif self._sensor_type == SENSOR_LAST_ACTIVITY:
-            event_ts = self._get_event_timestamp(EVENT_MOTION)
-            ding_ts = self._get_event_timestamp(EVENT_DING)
+            event_ts = self._get_event_timestamp(BewardDeviceEvent.MOTION)
+            ding_ts = self._get_event_timestamp(BewardDeviceEvent.DING)
             if ding_ts is not None and event_ts is not None and ding_ts > event_ts:
                 event_ts = ding_ts
 

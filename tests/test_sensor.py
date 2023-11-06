@@ -18,7 +18,7 @@ from custom_components.beward.const import (
     SENSOR_LAST_MOTION,
 )
 from custom_components.beward.sensor import BewardSensor
-from homeassistant.const import DEVICE_CLASS_TIMESTAMP
+from homeassistant.components.sensor import SensorDeviceClass
 from homeassistant.core import HomeAssistant
 import homeassistant.util.dt as dt_util
 
@@ -43,7 +43,7 @@ async def test_last_activity_sensor(hass: HomeAssistant, controller: BewardContr
     assert sensor.unique_id == f"{MOCK_DEVICE_ID}-{SENSOR_LAST_ACTIVITY}"
     assert sensor.name == f"{MOCK_DEVICE_NAME} Last Activity"
     assert sensor.icon == ICON_SENSOR
-    assert sensor.device_class == DEVICE_CLASS_TIMESTAMP
+    assert sensor.device_class == SensorDeviceClass.TIMESTAMP
     assert sensor.entity_id == f"sensor.{MOCK_DEVICE_ID}_{SENSOR_LAST_ACTIVITY}"
     assert sensor.state is None
 
@@ -63,7 +63,7 @@ async def test_last_motion_sensor(hass: HomeAssistant, controller: BewardControl
     assert sensor.unique_id == f"{MOCK_DEVICE_ID}-{SENSOR_LAST_MOTION}"
     assert sensor.name == f"{MOCK_DEVICE_NAME} Last Motion"
     assert sensor.icon == ICON_SENSOR
-    assert sensor.device_class == DEVICE_CLASS_TIMESTAMP
+    assert sensor.device_class == SensorDeviceClass.TIMESTAMP
     assert sensor.entity_id == f"sensor.{MOCK_DEVICE_ID}_{SENSOR_LAST_MOTION}"
     assert sensor.state is None
 
@@ -83,7 +83,7 @@ async def test_last_ding_sensor(hass: HomeAssistant, controller: BewardControlle
     assert sensor.unique_id == f"{MOCK_DEVICE_ID}-{SENSOR_LAST_DING}"
     assert sensor.name == f"{MOCK_DEVICE_NAME} Last Ding"
     assert sensor.icon == ICON_SENSOR
-    assert sensor.device_class == DEVICE_CLASS_TIMESTAMP
+    assert sensor.device_class == SensorDeviceClass.TIMESTAMP
     assert sensor.entity_id == f"sensor.{MOCK_DEVICE_ID}_{SENSOR_LAST_DING}"
     assert sensor.state is None
 

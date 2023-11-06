@@ -53,12 +53,12 @@ from .const import (
     DEFAULT_STREAM,
     DOMAIN,
     DOMAIN_YAML,
-    EVENT_ONLINE,
     PLATFORMS,
     SENSORS,
     STARTUP_MESSAGE,
     SUPPORT_LIB_URL,
     UNDO_UPDATE_LISTENER,
+    BewardDeviceEvent,
 )
 
 _LOGGER: Final = logging.getLogger(__name__)
@@ -377,7 +377,7 @@ class BewardController:
         if alarm in ALARMS_TO_EVENTS and device == self._device:
             event = ALARMS_TO_EVENTS[alarm]
 
-            if event == EVENT_ONLINE:
+            if event == BewardDeviceEvent.ONLINE:
                 if self._available != state:
                     _LOGGER.warning(
                         'Device "%s" is %s',
