@@ -20,7 +20,7 @@ import async_timeout
 import beward
 from haffmpeg.camera import CameraMjpeg
 
-from homeassistant.components.camera import SUPPORT_STREAM, Camera as CameraEntity
+from homeassistant.components.camera import CameraEntityFeature, Camera as CameraEntity
 from homeassistant.components.ffmpeg import DATA_FFMPEG, FFmpegManager
 from homeassistant.components.local_file.camera import LocalFile
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
@@ -125,7 +125,7 @@ class BewardLiveCamera(BewardEntity, CameraEntity):
     def supported_features(self) -> Optional[int]:
         """Return supported features."""
         if self._stream_url:
-            return SUPPORT_STREAM
+            return CameraEntityFeature.STREAM
         return 0
 
     def camera_image(
