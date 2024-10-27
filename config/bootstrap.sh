@@ -7,4 +7,4 @@ FILES=$(grep "{GITHUB_TOKEN}" ${ROOT}/requirements.txt | sed "s/{GITHUB_TOKEN}/$
 
 apt update && apt install -y ffmpeg
 
-python3 -m pip install --upgrade ${FILES}
+[ -z "${FILES}" ] || python3 -m pip install --upgrade ${FILES}

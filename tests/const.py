@@ -1,4 +1,5 @@
 """Constants for tests."""
+
 from typing import Final
 
 from custom_components.beward import CONF_CAMERAS

@@ -1,8 +1,6 @@
 {
     "name": "Beward Integration",
-    "filename": "beward.zip",
     "hide_default_branch": true,
-    "homeassistant": "2023.1.0",
-    "render_readme": true,
-    "zip_release": true
+    "homeassistant": "2024.6.0",
+    "render_readme": true
 }

@@ -16,7 +16,7 @@ workdir="/workspaces/${workspace}"
 
 container="dev-${workspace}"
 port="127.0.0.1:9123:8123"
-image="ghcr.io/ludeeus/devcontainer/integration:stable"
+image="devcontainer"
 volume="${ROOT}:${workdir}"
 
 cmd="menu"
@@ -80,13 +80,10 @@ bootstrap() {
 
 if ! ${docker} ps -a | grep -wq ${container} && [[ "${cmd}" != "down" ]]; then
     log.info "Create container..."
+    ${docker} build -t "${image}" "${ROOT}/.devcontainer/"
     ${docker} create -it --name "${container}" -p "${port}" -v "${volume}" "${image}"
 
     docker_start
-
-    log.info "Initialize container..."
-    ${docker} exec -it -w "${workdir}" "${container}" container install
-    bootstrap "install"
 fi
 
 if [[ "${cmd}" == "menu" ]]; then
@@ -142,7 +139,7 @@ case "${cmd}" in
             docker_start
         fi
         log.info "Send command '${cmd}' to container..."
-        if [[ "${cmd}" == "start" ]]; then
+        if [[ "${cmd}" == "start" || "${cmd}" == "up"  || "${cmd}" == "run" ]]; then
             log.info "Note: After Home Assistant initialization you can access to system on http://localhost:9123/"
         fi
         ${docker} exec -it -w "${workdir}" "${container}" container "${cmd}"
