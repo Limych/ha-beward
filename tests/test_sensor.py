@@ -1,14 +1,22 @@
 # pylint: disable=protected-access,redefined-outer-name
 """Test beward sensors."""
+
 #  Copyright (c) 2019-2023, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+
 from unittest.mock import Mock, patch
 
-from beward import BewardDoorbell
+import homeassistant.util.dt as dt_util
 import pytest
+from beward import BewardDoorbell
+from homeassistant.components.sensor import SensorDeviceClass
 
 from custom_components.beward import BewardController
 from custom_components.beward.const import (
@@ -18,9 +26,6 @@ from custom_components.beward.const import (
     SENSOR_LAST_MOTION,
 )
 from custom_components.beward.sensor import BewardSensor
-from homeassistant.components.sensor import SensorDeviceClass
-from homeassistant.core import HomeAssistant
-import homeassistant.util.dt as dt_util
 
 from .const import MOCK_DEVICE_ID, MOCK_DEVICE_NAME
 
@@ -48,7 +53,7 @@ async def test_last_activity_sensor(hass: HomeAssistant, controller: BewardContr
     assert sensor.state is None
 
     with patch.object(sensor, "_get_event_timestamp", return_value=mock_ts):
-        sensor._update_callback(True)
+        sensor._update_callback(update_ha_state=True)
         assert sensor.state == mock_ts_local.isoformat()
 
 
@@ -68,7 +73,7 @@ async def test_last_motion_sensor(hass: HomeAssistant, controller: BewardControl
     assert sensor.state is None
 
     with patch.object(sensor, "_get_event_timestamp", return_value=mock_ts):
-        sensor._update_callback(True)
+        sensor._update_callback(update_ha_state=True)
         assert sensor.state == mock_ts_local.isoformat()
 
 
@@ -88,5 +93,5 @@ async def test_last_ding_sensor(hass: HomeAssistant, controller: BewardControlle
     assert sensor.state is None
 
     with patch.object(sensor, "_get_event_timestamp", return_value=mock_ts):
-        sensor._update_callback(True)
+        sensor._update_callback(update_ha_state=True)
         assert sensor.state == mock_ts_local.isoformat()

@@ -2,7 +2,6 @@
 
 from typing import Final
 
-from custom_components.beward import CONF_CAMERAS
 from homeassistant.const import (
     CONF_BINARY_SENSORS,
     CONF_HOST,
@@ -11,6 +10,8 @@ from homeassistant.const import (
     CONF_SENSORS,
     CONF_USERNAME,
 )
+
+from custom_components.beward import CONF_CAMERAS
 
 MOCK_HOST: Final = "192.168.0.2"
 MOCK_PORT: Final = 81

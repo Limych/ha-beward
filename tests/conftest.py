@@ -16,10 +16,10 @@
 #
 # See here for more info: https://docs.pytest.org/en/latest/fixture.html (note that
 # pytest includes fixtures OOB which you can use as defined on this page)
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
-from beward import Beward, BewardGeneric
 import pytest
+from beward import Beward, BewardGeneric
 
 from tests.const import MOCK_HOST, MOCK_PASSWORD, MOCK_PORT, MOCK_USERNAME
 
@@ -50,7 +50,7 @@ def _skip_notifications_fixture() -> None:
 class MockBewardDevice(BewardGeneric):
     """Beward device mock."""
 
-    def __init__(self):
+    def __init__(self) -> None:
         """Initialize class."""
         super().__init__(MOCK_HOST, MOCK_USERNAME, MOCK_PASSWORD, port=MOCK_PORT)
 
@@ -68,12 +68,14 @@ class MockBewardDevice(BewardGeneric):
 @pytest.fixture(name="bypass_get_data")
 def _bypass_get_data_fixture() -> None:
     """Skip calls to get data from API."""
-    with patch.object(BewardGeneric, "is_online", return_value=True), patch.object(
-        BewardGeneric, "listen_alarms"
-    ), patch.object(
-        Beward,
-        "factory",
-        return_value=MockBewardDevice(),
+    with (
+        patch.object(BewardGeneric, "is_online", return_value=True),
+        patch.object(BewardGeneric, "listen_alarms"),
+        patch.object(
+            Beward,
+            "factory",
+            return_value=MockBewardDevice(),
+        ),
     ):
         yield
 

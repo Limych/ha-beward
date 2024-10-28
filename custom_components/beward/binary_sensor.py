@@ -1,22 +1,26 @@
 """Binary sensor platform for Beward devices."""
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+
+#  Copyright (c) 2019-2024, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
 import logging
-from typing import Final
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.typing import ConfigType
+
+    from . import BewardController
 
 import beward
-
 from homeassistant.components.binary_sensor import ENTITY_ID_FORMAT, BinarySensorEntity
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import CONF_BINARY_SENSORS
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers.entity import generate_entity_id
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.helpers.entity import Entity, generate_entity_id
 
-from . import BewardController
 from .const import (
     BINARY_SENSORS,
     CAT_CAMERA,
@@ -31,7 +35,9 @@ _LOGGER: Final = logging.getLogger(__name__)
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up a binary sensors for a Beward device."""
     entities = []
@@ -39,9 +45,7 @@ async def async_setup_entry(
     if entry.source == SOURCE_IMPORT:
         config = hass.data[DOMAIN_YAML]
         for index, device_config in enumerate(config):
-            controller = hass.data[DOMAIN][entry.entry_id][
-                index
-            ]  # type: BewardController
+            controller = hass.data[DOMAIN][entry.entry_id][index]  # type: BewardController
             entities.extend(_setup_entities(controller, device_config))
 
     else:
@@ -51,11 +55,11 @@ async def async_setup_entry(
         entities.extend(_setup_entities(controller, config))
 
     if entities:
-        async_add_entities(entities, True)
+        async_add_entities(entities, update_before_add=True)
     return True
 
 
-def _setup_entities(controller: BewardController, config: ConfigType) -> list:
+def _setup_entities(controller: BewardController, config: ConfigType) -> list[Entity]:
     """Set up entities for device."""
     category = None
     if isinstance(controller.device, beward.BewardDoorbell):
@@ -63,18 +67,17 @@ def _setup_entities(controller: BewardController, config: ConfigType) -> list:
     elif isinstance(controller.device, beward.BewardCamera):
         category = CAT_CAMERA
 
-    entities = []
-    for sensor_type in config.get(CONF_BINARY_SENSORS, []):
-        if category in BINARY_SENSORS[sensor_type][1]:
-            entities.append(BewardBinarySensor(controller, sensor_type))
-
-    return entities
+    return [
+        BewardBinarySensor(controller, x)
+        for x in config.get(CONF_BINARY_SENSORS, [])
+        if category in BINARY_SENSORS[x][1]
+    ]
 
 
 class BewardBinarySensor(BewardEntity, BinarySensorEntity):
     """A binary sensor implementation for Beward device."""
 
-    def __init__(self, controller: BewardController, sensor_type: str):
+    def __init__(self, controller: BewardController, sensor_type: str) -> None:
         """Initialize a sensor for Beward device."""
         super().__init__(controller)
 
@@ -100,7 +103,7 @@ class BewardBinarySensor(BewardEntity, BinarySensorEntity):
         self._update_callback(update_ha_state=False)
 
     @callback
-    def _update_callback(self, update_ha_state=True) -> None:
+    def _update_callback(self, update_ha_state: bool = True) -> None:  # noqa: FBT001, FBT002
         """Get the latest data and updates the state if necessary."""
         state = (
             self._controller.available

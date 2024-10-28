@@ -1,20 +1,23 @@
 """Constants for Beward component."""
-#  Copyright (c) 2019-2023, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+
+#  Copyright (c) 2019-2024, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
 from enum import StrEnum
-from typing import Dict, Final
+from typing import Final
 
 from beward.const import ALARM_MOTION, ALARM_ONLINE, ALARM_SENSOR
-
 from homeassistant.components.binary_sensor import (
     DOMAIN as BINARY_SENSOR,
+)
+from homeassistant.components.binary_sensor import (
     BinarySensorDeviceClass,
 )
 from homeassistant.components.camera import DOMAIN as CAMERA
-from homeassistant.components.sensor import DOMAIN as SENSOR, SensorDeviceClass
+from homeassistant.components.sensor import DOMAIN as SENSOR
+from homeassistant.components.sensor import SensorDeviceClass
 
 # Base component constants
 NAME: Final = "Beward Integration"
@@ -97,7 +100,7 @@ SENSOR_LAST_MOTION: Final = "last_motion"
 SENSOR_LAST_DING: Final = "last_ding"
 
 # Camera types are defined like: name template, device class, device event
-CAMERAS: Final[Dict[str, list]] = {
+CAMERAS: Final[dict[str, list]] = {
     CAMERA_LIVE: [CAMERA_NAME_LIVE, [CAT_DOORBELL, CAT_CAMERA], None],
     CAMERA_LAST_MOTION: [
         CAMERA_NAME_LAST_MOTION,
@@ -108,7 +111,7 @@ CAMERAS: Final[Dict[str, list]] = {
 }
 
 # Sensor types: name, category, class
-BINARY_SENSORS: Final[Dict[str, list]] = {
+BINARY_SENSORS: Final[dict[str, list]] = {
     BewardDeviceEvent.DING: ["Ding", [CAT_DOORBELL], None],
     BewardDeviceEvent.MOTION: [
         "Motion",

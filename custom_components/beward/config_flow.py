@@ -1,15 +1,25 @@
 """Adds config flow for Beward."""
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+
+#  Copyright (c) 2019-2024, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
-from typing import Final, Optional
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from homeassistant.helpers.typing import ConfigType
 
 import beward
+import homeassistant.helpers.config_validation as cv
 import voluptuous as vol
-
 from homeassistant import config_entries
+from homeassistant.config_entries import (
+    ConfigEntry,
+    ConfigFlow,
+    ConfigFlowResult,
+    OptionsFlow,
+)
 from homeassistant.const import (
     CONF_BINARY_SENSORS,
     CONF_HOST,
@@ -19,8 +29,6 @@ from homeassistant.const import (
     CONF_USERNAME,
 )
 from homeassistant.core import callback
-import homeassistant.helpers.config_validation as cv
-from homeassistant.helpers.typing import ConfigType
 
 from .const import (  # pylint: disable=unused-import
     BINARY_SENSORS,
@@ -32,14 +40,15 @@ from .const import (  # pylint: disable=unused-import
 )
 
 
-class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
+class BewardFlowHandler(ConfigFlow, domain=DOMAIN):
     """Config flow for Beward."""
 
     VERSION: Final = 1
     CONNECTION_CLASS: Final = config_entries.CONN_CLASS_CLOUD_POLL
 
-    async def async_step_import(self, platform_config: ConfigType):
-        """Import a config entry.
+    async def async_step_import(self, platform_config: ConfigType) -> ConfigFlowResult:
+        """
+        Import a config entry.
 
         Special type of import, we're not actually going to store any data.
         Instead, we're going to rely on the values that are in config file.
@@ -49,7 +58,9 @@ class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_create_entry(title="configuration.yaml", data=platform_config)
 
-    async def async_step_user(self, user_input: Optional[ConfigType] = None):
+    async def async_step_user(
+        self, user_input: ConfigType | None = None
+    ) -> ConfigFlowResult:
         """Handle a flow initialized by the user."""
         errors = {}
 
@@ -71,8 +82,8 @@ class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
         return await self._show_config_form(user_input, errors)
 
     async def _show_config_form(
-        self, cfg: ConfigType, errors
-    ):  # pylint: disable=unused-argument
+        self, cfg: ConfigType, errors: dict[str, str]
+    ) -> ConfigFlowResult:
         """Show the configuration form to edit location data."""
         if cfg is None:
             cfg = {}
@@ -95,11 +106,11 @@ class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-    async def _test_credentials(self, config: ConfigType):
+    async def _test_credentials(self, config: ConfigType) -> bool:
         """Return true if credentials is valid."""
         try:
 
-            def test_device():
+            def test_device() -> bool:
                 device = beward.Beward.factory(
                     config[CONF_HOST],
                     config[CONF_USERNAME],
@@ -109,33 +120,38 @@ class BewardFlowHandler(config_entries.ConfigFlow, domain=DOMAIN):
                 return device.available
 
             return await self.hass.async_add_executor_job(test_device)
-        except Exception:  # pylint: disable=broad-except
+        except Exception:  # noqa: S110, BLE001
             pass
         return False
 
     @staticmethod
     @callback
-    def async_get_options_flow(config_entry):
+    def async_get_options_flow(config_entry: ConfigEntry) -> OptionsFlow:
         """Get component options flow."""
         return BewardOptionsFlowHandler(config_entry)
 
 
-class BewardOptionsFlowHandler(config_entries.OptionsFlow):
+class BewardOptionsFlowHandler(OptionsFlow):
     """Beward config flow options handler."""
 
-    def __init__(self, config_entry):
+    def __init__(self, config_entry: ConfigEntry) -> None:
         """Initialize Beward options flow."""
         self.config_entry = config_entry
         self.options = dict(config_entry.options)
 
-    async def async_step_init(self, user_input=None):  # pylint: disable=unused-argument
+    async def async_step_init(
+        self,
+        user_input: ConfigType | None = None,  # noqa: ARG002
+    ) -> ConfigFlowResult:
         """Manage the options."""
         if self.config_entry.source == config_entries.SOURCE_IMPORT:
             return self.async_abort(reason="no_options_available")
 
         return await self.async_step_user()
 
-    async def async_step_user(self, user_input: Optional[ConfigType] = None):
+    async def async_step_user(
+        self, user_input: ConfigType | None = None
+    ) -> ConfigFlowResult:
         """Handle a flow initialized by the user."""
         if user_input is not None:
             self.options.update(user_input)

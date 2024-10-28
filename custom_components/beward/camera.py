@@ -1,37 +1,45 @@
-"""Support for viewing the camera feed from a Beward devices.
+"""
+Support for viewing the camera feed from a Beward devices.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+
+#  Copyright (c) 2019-2024, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
-import asyncio
-from asyncio import run_coroutine_threadsafe
 import datetime
 import logging
-from typing import Final, Optional
+from asyncio import run_coroutine_threadsafe
+from typing import TYPE_CHECKING, Final
+
+if TYPE_CHECKING:
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceInfo
+    from homeassistant.helpers.entity import Entity
+    from homeassistant.helpers.entity_platform import AddEntitiesCallback
+    from homeassistant.helpers.typing import ConfigType
+
+    from . import BewardController
 
 import aiohttp
-from aiohttp.abc import StreamResponse
 import async_timeout
 import beward
+from aiohttp import web
 from haffmpeg.camera import CameraMjpeg
-
-from homeassistant.components.camera import CameraEntityFeature, Camera as CameraEntity
+from homeassistant.components.camera import Camera as CameraEntity
+from homeassistant.components.camera import CameraEntityFeature
 from homeassistant.components.ffmpeg import DATA_FFMPEG, FFmpegManager
 from homeassistant.components.local_file.camera import LocalFile
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import (
     async_aiohttp_proxy_stream,
     async_get_clientsession,
 )
-from homeassistant.helpers.typing import ConfigType
+from homeassistant.util import dt as dt_util
 
-from . import BewardController
 from .const import (
     CAMERA_LIVE,
     CAMERA_NAME_LIVE,
@@ -52,7 +60,9 @@ _SESSION_TIMEOUT: Final = 10  # seconds
 
 
 async def async_setup_entry(
-    hass: HomeAssistant, entry: ConfigEntry, async_add_entities
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    async_add_entities: AddEntitiesCallback,
 ) -> bool:
     """Set up a cameras for a Beward device."""
     entities = []
@@ -70,13 +80,13 @@ async def async_setup_entry(
         entities.extend(await _async_setup_entities(controller, config))
 
     if entities:
-        async_add_entities(entities, True)
+        async_add_entities(entities, update_before_add=True)
     return True
 
 
 async def _async_setup_entities(
     controller: BewardController, config: ConfigType
-) -> list:
+) -> list[Entity]:
     """Set up entities for device."""
     category = None
     if isinstance(controller.device, beward.BewardDoorbell):
@@ -102,7 +112,7 @@ async def _async_setup_entities(
 class BewardLiveCamera(BewardEntity, CameraEntity):
     """The camera on a Beward device."""
 
-    def __init__(self, controller: BewardController, config: ConfigType):
+    def __init__(self, controller: BewardController, config: ConfigType) -> None:
         """Initialize the camera on a Beward device."""
         super().__init__(controller)
 
@@ -117,19 +127,21 @@ class BewardLiveCamera(BewardEntity, CameraEntity):
         self._attr_unique_id = f"{self._controller.unique_id}-live"
         self._attr_name = CAMERA_NAME_LIVE.format(controller.name)
 
-    async def stream_source(self) -> Optional[str]:
+    async def stream_source(self) -> str | None:
         """Return the stream source."""
         return self._stream_url
 
     @property
-    def supported_features(self) -> Optional[int]:
+    def supported_features(self) -> int | None:
         """Return supported features."""
         if self._stream_url:
             return CameraEntityFeature.STREAM
         return 0
 
     def camera_image(
-        self, width: int | None = None, height: int | None = None
+        self,
+        width: int | None = None,  # noqa: ARG002
+        height: int | None = None,  # noqa: ARG002
     ) -> bytes | None:
         """Return camera image."""
         return run_coroutine_threadsafe(
@@ -137,10 +149,12 @@ class BewardLiveCamera(BewardEntity, CameraEntity):
         ).result()
 
     async def async_camera_image(
-        self, width: int | None = None, height: int | None = None
+        self,
+        width: int | None = None,  # noqa: ARG002
+        height: int | None = None,  # noqa: ARG002
     ) -> bytes | None:
         """Pull a still image from the camera."""
-        now = datetime.datetime.now()
+        now = dt_util.now()
 
         if self._last_image and now - self._last_update < _UPDATE_INTERVAL_LIVE:
             return self._last_image
@@ -150,19 +164,22 @@ class BewardLiveCamera(BewardEntity, CameraEntity):
             with async_timeout.timeout(_SESSION_TIMEOUT):
                 response = await websession.get(self._url)
 
+        except TimeoutError:
+            _LOGGER.exception("Camera image timed out")
+            return self._last_image
+
+        except aiohttp.ClientError:
+            _LOGGER.exception("Error getting camera image")
+            return self._last_image
+
+        else:
             self._last_image = await response.read()
             self._last_update = now
             return self._last_image
 
-        except asyncio.TimeoutError:
-            _LOGGER.error("Camera image timed out")
-            return self._last_image
-
-        except aiohttp.ClientError as error:
-            _LOGGER.error("Error getting camera image: %s", error)
-            return self._last_image
-
-    async def handle_async_mjpeg_stream(self, request) -> Optional[StreamResponse]:
+    async def handle_async_mjpeg_stream(
+        self, request: web.Request
+    ) -> web.StreamResponse | None:
         """Generate an HTTP MJPEG stream from the camera."""
         if not self._stream_url:
             return None
@@ -189,7 +206,7 @@ class BewardLiveCamera(BewardEntity, CameraEntity):
 class BewardFileCamera(LocalFile):
     """Beward camera for static images."""
 
-    def __init__(self, controller: BewardController, camera_type: str):
+    def __init__(self, controller: BewardController, camera_type: str) -> None:
         """Initialize."""
         super().__init__(
             CAMERAS[camera_type][0].format(controller.name),
@@ -201,6 +218,6 @@ class BewardFileCamera(LocalFile):
         self._attr_unique_id = f"{self._controller.unique_id}-file-{camera_type}"
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo | None:
         """Return the device info."""
         return self._controller.device_info

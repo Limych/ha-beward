@@ -1,24 +1,34 @@
-"""Component to integrate with Beward security devices.
+"""
+Component to integrate with Beward security devices.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+
+#  Copyright (c) 2019-2024, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
-from collections.abc import Mapping
-from datetime import datetime
 import logging
-import os
 import tempfile
+from pathlib import Path
 from time import sleep
-from typing import Any, Dict, Final, Optional
+from typing import TYPE_CHECKING, Any, Final
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+    from datetime import datetime
+
+    from homeassistant.core import HomeAssistant
+    from homeassistant.helpers.device_registry import DeviceInfo
+    from homeassistant.helpers.typing import ConfigType
 
 import beward
+import homeassistant.helpers.config_validation as cv
+import homeassistant.util.dt as dt_util
 import voluptuous as vol
-
+from beward import BewardCamera, BewardGeneric
 from homeassistant.components.ffmpeg.camera import DEFAULT_ARGUMENTS
 from homeassistant.config_entries import SOURCE_IMPORT, ConfigEntry
 from homeassistant.const import (
@@ -31,14 +41,10 @@ from homeassistant.const import (
     CONF_SENSORS,
     CONF_USERNAME,
 )
-from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryNotReady
-import homeassistant.helpers.config_validation as cv
 from homeassistant.helpers.dispatcher import dispatcher_send
 from homeassistant.helpers.storage import STORAGE_DIR
-from homeassistant.helpers.typing import ConfigType
 from homeassistant.util import slugify
-import homeassistant.util.dt as dt_util
 
 from .const import (
     ALARMS_TO_EVENTS,
@@ -111,7 +117,7 @@ async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     return True
 
 
-async def async_update_listener(hass: HomeAssistant, config_entry: ConfigEntry):
+async def async_update_listener(hass: HomeAssistant, config_entry: ConfigEntry) -> None:
     """Handle options update."""
     await hass.config_entries.async_reload(config_entry.entry_id)
 
@@ -147,7 +153,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 async def _async_setup_device(
     hass: HomeAssistant, entry: ConfigEntry, device_config: ConfigType, index: int = 0
-):
+) -> BewardController:
     """Set up one device."""
     device_ip = device_config.get(CONF_HOST)
     name = device_config.get(CONF_NAME)
@@ -158,7 +164,7 @@ async def _async_setup_device(
 
     try:
 
-        def get_device():
+        def get_device() -> BewardGeneric:
             return beward.Beward.factory(
                 device_ip,
                 username,
@@ -170,7 +176,7 @@ async def _async_setup_device(
 
         device = await hass.async_add_executor_job(get_device)
     except ValueError as exc:
-        _LOGGER.error(exc)
+        _LOGGER.exception("")
         if exc == 'Unknown device "None"':
             msg = (
                 "Device recognition error.<br />"
@@ -179,8 +185,8 @@ async def _async_setup_device(
         else:
             msg = (
                 f"Error: {exc}<br />"
-                f'Please <a href="{SUPPORT_LIB_URL}" target="_blank">contact the developers '
-                "of the Beward library</a> to solve this problem."
+                f'Please <a href="{SUPPORT_LIB_URL}" target="_blank">contact the '
+                "developers of the Beward library</a> to solve this problem."
             )
         hass.components.persistent_notification.create(
             msg,
@@ -246,10 +252,10 @@ class BewardController:
     def __init__(
         self,
         hass: HomeAssistant,
-        unique_id: Optional[str],
-        device: beward.BewardGeneric,
+        unique_id: str | None,
+        device: BewardGeneric,
         name: str,
-    ):
+    ) -> None:
         """Initialize configured device."""
         self.hass = hass
         self.name = name
@@ -257,31 +263,30 @@ class BewardController:
         self._unique_id = unique_id
 
         self._available = True
-        self.event_timestamp: Dict[str, datetime] = {}
-        self.event_state: Dict[str, bool] = {}
+        self.event_timestamp: dict[str, datetime] = {}
+        self.event_state: dict[str, bool] = {}
 
         # Register callback to handle device alarms.
         self._device.add_alarms_handler(self._alarms_handler)
         self._device.listen_alarms(alarms=ALARMS_TO_EVENTS.keys())
 
-    def __del__(self):
+    def __del__(self) -> None:
         """Destructor."""
         # Remove device alarms handler.
         self._device.remove_alarms_handler(self._alarms_handler)
         sleep(0.1)
 
-    def service_signal(self, service):
+    def service_signal(self, service: str) -> str:
         """Encode service and identifier into signal."""
-        signal = f"{DOMAIN}_{service}_{slugify(self.unique_id)}"
-        return signal
+        return f"{DOMAIN}_{service}_{slugify(self.unique_id)}"
 
     @property
-    def unique_id(self):
+    def unique_id(self) -> str | None:
         """Return a device unique ID."""
         return self._unique_id
 
     @property
-    def device(self):
+    def device(self) -> BewardGeneric:
         """Get the configured device."""
         return self._device
 
@@ -291,7 +296,7 @@ class BewardController:
         return self._available
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo | None:
         """Return the device info."""
         return {
             "identifiers": {(DOMAIN, self.unique_id)},
@@ -301,13 +306,13 @@ class BewardController:
         }
 
     @property
-    def extra_state_attributes(self) -> Optional[Mapping[str, Any]]:
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return entity specific state attributes."""
         return {
             ATTR_ATTRIBUTION: ATTRIBUTION,
         }
 
-    def history_image_path(self, event: str):
+    def history_image_path(self, event: str) -> str:
         """Return the path to saved image."""
         file_name = slugify(f"{self.name} last {event}") + ".jpg"
         return self.hass.config.path(
@@ -317,23 +322,22 @@ class BewardController:
             file_name,
         )
 
-    def set_event_state(self, timestamp: datetime, event: str, state: bool):
+    def set_event_state(self, timestamp: datetime, event: str, state: bool) -> None:  # noqa: FBT001
         """Call Beward to refresh information."""
         _LOGGER.debug("Updating Beward component")
         if state:
             self.event_timestamp[event] = timestamp
         self.event_state[event] = state
 
-    def _cache_image(self, event: str, image):
+    def _cache_image(self, event: str, image: bytes | None) -> None:
         """Save image for event to cache."""
-        image_path = self.history_image_path(event)
-        tmp_filename = ""
-        image_dir = os.path.split(image_path)[0]
+        image_path = Path(self.history_image_path(event))
+        image_dir = image_path.parent
+        tmp_path = Path()
 
         _LOGGER.debug("Save camera photo to %s", image_path)
 
-        if not os.path.exists(image_dir):
-            os.makedirs(image_dir, mode=0o755)
+        image_dir.mkdir(parents=True, mode=0o755, exist_ok=True)
 
         try:
             # Modern versions of Python tempfile create
@@ -342,27 +346,33 @@ class BewardController:
                 mode="wb", dir=image_dir, delete=False
             ) as fdesc:
                 fdesc.write(image)
-                tmp_filename = fdesc.name
+                tmp_path = Path(fdesc.name)
 
-            os.chmod(tmp_filename, 0o644)
-            os.replace(tmp_filename, image_path)
+            tmp_path.chmod(0o644)
+            tmp_path.replace(image_path)
 
-        except OSError as error:
+        except OSError:
             _LOGGER.exception("Saving image file failed: %s", image_path)
-            raise error
+            raise
 
         finally:
-            if os.path.exists(tmp_filename):
+            if tmp_path.exists():
                 try:
-                    os.remove(tmp_filename)
+                    tmp_path.unlink()
 
-                except OSError as err:
+                except OSError:
                     # If we are cleaning up then something else
                     # went wrong, so we should suppress likely
                     # follow-on errors in the cleanup
-                    _LOGGER.error("Image replacement cleanup failed: %s", err)
+                    _LOGGER.exception("Image replacement cleanup failed")
 
-    def _alarms_handler(self, device, timestamp: datetime, alarm: str, state: bool):
+    def _alarms_handler(
+        self,
+        device: BewardGeneric,
+        timestamp: datetime,
+        alarm: str,
+        state: bool,  # noqa: FBT001
+    ) -> None:
         """Handle device's alarm events."""
         timestamp = dt_util.as_local(dt_util.as_utc(timestamp))
 
@@ -387,7 +397,7 @@ class BewardController:
                 self.event_state[event] = state
                 if state:
                     self.event_timestamp[event] = timestamp
-                    if isinstance(self._device, beward.BewardCamera):
+                    if isinstance(self._device, BewardCamera):
                         self._cache_image(event, self._device.live_image)
 
             dispatcher_send(self.hass, self.service_signal("update"))

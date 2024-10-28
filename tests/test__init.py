@@ -1,5 +1,10 @@
 # pylint: disable=protected-access,redefined-outer-name
 """Test beward setup process."""
+
+from homeassistant.config_entries import ConfigEntryState
+from homeassistant.core import HomeAssistant
+from homeassistant.helpers.storage import STORAGE_DIR
+from homeassistant.setup import async_setup_component
 from pytest_homeassistant_custom_component.common import (
     MockConfigEntry,
     assert_setup_component,
@@ -7,13 +12,8 @@ from pytest_homeassistant_custom_component.common import (
 
 from custom_components.beward import (
     BewardController,
-    async_setup_entry,
-    async_unload_entry,
 )
 from custom_components.beward.const import DOMAIN, UNDO_UPDATE_LISTENER
-from homeassistant.core import HomeAssistant
-from homeassistant.helpers.storage import STORAGE_DIR
-from homeassistant.setup import async_setup_component
 
 from .const import MOCK_CONFIG, MOCK_YAML_CONFIG
 
@@ -63,29 +63,43 @@ async def test_setup_unload_and_reload_entry(hass: HomeAssistant, bypass_get_dat
 
     # Create a mock entry so we don't have to go through config flow
     config_entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, entry_id="test")
+    config_entry.add_to_hass(hass)
 
     # Set up the entry and assert that the values set during setup are where we expect
     # them to be. Because we have patched the beward.Beward.factory call, no code from
     # beward library actually runs.
-    assert await async_setup_entry(hass, config_entry)
-    assert DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]
+    await hass.config_entries.async_setup(config_entry.entry_id)
+    await hass.async_block_till_done()
+    #
+    assert config_entry.state is ConfigEntryState.LOADED
+    assert DOMAIN in hass.data
+    assert config_entry.entry_id in hass.data[DOMAIN]
     #
     cfg = hass.data[DOMAIN][config_entry.entry_id]
-    assert UNDO_UPDATE_LISTENER in cfg and callable(cfg[UNDO_UPDATE_LISTENER])
-    assert 0 in cfg and isinstance(cfg[0], BewardController)
+    assert UNDO_UPDATE_LISTENER in cfg
+    assert callable(cfg[UNDO_UPDATE_LISTENER])
+    assert 0 in cfg
+    assert isinstance(cfg[0], BewardController)
 
     # Reload the entry and assert that the data from above is still there
-    # assert await async_reload_entry(hass, config_entry) is None
-    # assert DOMAIN in hass.data and config_entry.entry_id in hass.data[DOMAIN]
-    # #
-    # cfg = hass.data[DOMAIN][config_entry.entry_id]
-    # assert 0 in cfg and isinstance(cfg[0], BewardController)
+    await hass.config_entries.async_reload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    #
+    assert DOMAIN in hass.data
+    assert config_entry.entry_id in hass.data[DOMAIN]
+    #
+    cfg = hass.data[DOMAIN][config_entry.entry_id]
+    assert 0 in cfg
+    assert isinstance(cfg[0], BewardController)
 
     # Unload the entry and verify that the data has been removed
-    assert await async_unload_entry(hass, config_entry)
+    await hass.config_entries.async_unload(config_entry.entry_id)
+    await hass.async_block_till_done()
+    #
     assert config_entry.entry_id not in hass.data[DOMAIN]
 
 
+# ruff: noqa: ERA001
 # async def test_setup_entry_exception(hass: HomeAssistant, error_on_get_data):
 #     """Test ConfigEntryNotReady when API raises an exception during entry setup."""
 #     config_entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, entry_id="test")

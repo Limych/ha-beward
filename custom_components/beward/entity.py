@@ -1,24 +1,30 @@
-"""Integration of the JQ-300/200/100 indoor air quality meter.
+"""
+Integration of the JQ-300/200/100 indoor air quality meter.
 
 For more details about this component, please refer to
 https://github.com/Limych/ha-beward
 """
-#  Copyright (c) 2019-2022, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
+
+#  Copyright (c) 2019-2024, Andrey "Limych" Khrolenok <andrey@khrolenok.ru>
 #  Creative Commons BY-NC-SA 4.0 International Public License
 #  (see LICENSE.md or https://creativecommons.org/licenses/by-nc-sa/4.0/)
 from __future__ import annotations
 
-from abc import ABC
-from collections.abc import Mapping
 import logging
-from typing import Any, Final, Optional
+from abc import ABC
+from typing import TYPE_CHECKING, Any, Final
+
+if TYPE_CHECKING:
+    from collections.abc import Mapping
+
+    from homeassistant.helpers.device_registry import DeviceInfo
+
+    from . import BewardController
 
 from homeassistant.const import EVENT_HOMEASSISTANT_START
-from homeassistant.core import callback
+from homeassistant.core import Event, callback
 from homeassistant.helpers.dispatcher import async_dispatcher_connect
 from homeassistant.helpers.entity import Entity
-
-from . import BewardController
 
 _LOGGER: Final = logging.getLogger(__name__)
 
@@ -26,7 +32,7 @@ _LOGGER: Final = logging.getLogger(__name__)
 class BewardEntity(Entity, ABC):
     """Beward entity."""
 
-    def __init__(self, controller: BewardController):
+    def __init__(self, controller: BewardController) -> None:
         """Initialize a Beward entity."""
         super().__init__()
 
@@ -44,26 +50,25 @@ class BewardEntity(Entity, ABC):
         return self._controller.available
 
     @property
-    def device_info(self):
+    def device_info(self) -> DeviceInfo | None:
         """Return the device info."""
         return self._controller.device_info
 
     @property
-    def extra_state_attributes(self) -> Optional[Mapping[str, Any]]:
+    def extra_state_attributes(self) -> Mapping[str, Any] | None:
         """Return entity specific state attributes."""
         return self._controller.extra_state_attributes
 
     @callback
-    def _update_callback(self, update_ha_state=True) -> None:
+    def _update_callback(self, update_ha_state: bool = True) -> None:  # noqa: FBT001, FBT002
         """Get the latest data and updates the state if necessary."""
-        pass  # pylint: disable=unnecessary-pass
+        # pylint: disable=unnecessary-pass
 
     async def async_added_to_hass(self) -> None:
         """Register callbacks."""
 
-        # pylint: disable=unused-argument
         @callback
-        def sensor_startup(event):
+        def sensor_startup(event: Event) -> None:  # noqa: ARG001
             """Update sensor state on startup."""
             self._unsub_dispatcher = async_dispatcher_connect(
                 self.hass,

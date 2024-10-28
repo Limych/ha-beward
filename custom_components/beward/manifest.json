@@ -15,9 +15,8 @@
     "iot_class": "local_push",
     "issue_tracker": "https://github.com/Limych/ha-beward/issues",
     "requirements": [
-        "colorlog==6.7.0",
-        "ruff==0.1.1",
-        "beward>=1.1.6,<2.0",
+        "pip>=21.3.1",
+        "beward>=1.1.13,<2.0",
         "ha-av>=9.2",
         "ha-ffmpeg~=3.0"
     ],
