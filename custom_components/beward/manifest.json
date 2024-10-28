@@ -20,5 +20,5 @@
         "ha-av>=9.2",
         "ha-ffmpeg~=3.0"
     ],
-    "version": "1.1.29-alpha"
+    "version": "1.1.29"
 }

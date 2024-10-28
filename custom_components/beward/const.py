@@ -22,7 +22,7 @@ from homeassistant.components.sensor import SensorDeviceClass
 # Base component constants
 NAME: Final = "Beward Integration"
 DOMAIN: Final = "beward"
-VERSION: Final = "1.1.29-alpha"
+VERSION: Final = "1.1.29"
 ATTRIBUTION: Final = "Data provided by Beward device."
 ISSUE_URL: Final = "https://github.com/Limych/ha-beward/issues"
 SUPPORT_LIB_URL: Final = "https://github.com/Limych/py-beward/issues/new/choose"
